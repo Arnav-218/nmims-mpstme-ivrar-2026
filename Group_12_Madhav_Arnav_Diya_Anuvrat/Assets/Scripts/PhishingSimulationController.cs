@@ -7,7 +7,7 @@ using UnityEngine;
 
 public sealed class PhishingSimulationController : MonoBehaviour
 {
-    public const int CurrentSceneBuildVersion = 7;
+    public const int CurrentSceneBuildVersion = 8;
 
     [Header("Tracking Anchors")]
     [SerializeField] private Transform headAnchor;
@@ -128,6 +128,11 @@ public sealed class PhishingSimulationController : MonoBehaviour
             Camera cam = camObj.GetComponent<Camera>();
             if (cam != null)
             {
+                // Prevent near clipping grey planes on proximity to screens or walls
+                cam.nearClipPlane = 0.01f;
+                cam.clearFlags = CameraClearFlags.SolidColor;
+                cam.backgroundColor = new Color(0.91f, 0.92f, 0.93f);
+
                 var camData = camObj.GetComponent<UnityEngine.Rendering.Universal.UniversalAdditionalCameraData>();
                 if (camData != null)
                 {
@@ -135,8 +140,14 @@ public sealed class PhishingSimulationController : MonoBehaviour
                     camData.antialiasing = UnityEngine.Rendering.Universal.AntialiasingMode.FastApproximateAntialiasing;
                 }
             }
+
+            // Remove any leftover physical colliders that could cause clipping/blanking
+            SphereCollider sc = camObj.GetComponent<SphereCollider>();
+            if (sc != null)
+                sc.enabled = false;
         }
     }
+
 
     public void RecenterIfDisplaced(bool force = false)
     {
@@ -193,7 +204,7 @@ public sealed class PhishingSimulationController : MonoBehaviour
     }
 
     // =========================================================================
-    // 3D Corporate Office Environment (Requirement 5)
+    // 3D Corporate Office Environment (Requirement 5: Professional Office Cabin)
     // =========================================================================
     private void BuildCorporateOfficeRoom()
     {
@@ -201,16 +212,21 @@ public sealed class PhishingSimulationController : MonoBehaviour
         Texture2D wallTex = Resources.Load<Texture2D>("Textures/wall_acoustic");
         Texture2D ceilTex = Resources.Load<Texture2D>("Textures/ceiling_acoustic");
 
-        // Enclosed corporate cyber-defense workstation room (7.2m wide, 6.4m deep, 3.4m tall)
-        CreateTexturedBox("Office Floor", new Vector3(0f, -0.05f, 1.8f), new Vector3(7.2f, 0.10f, 6.4f), new Color(0.22f, 0.24f, 0.27f), floorTex, new Vector2(6f, 6f), officeContent);
-        CreateTexturedBox("Office Ceiling", new Vector3(0f, 3.4f, 1.8f), new Vector3(7.2f, 0.10f, 6.4f), new Color(0.12f, 0.13f, 0.15f), ceilTex, new Vector2(4f, 4f), officeContent);
-        CreateTexturedBox("Office Back Wall", new Vector3(0f, 1.7f, 4.95f), new Vector3(7.2f, 3.4f, 0.12f), new Color(0.24f, 0.27f, 0.31f), wallTex, new Vector2(5f, 2f), officeContent);
-        CreateTexturedBox("Office Front Wall", new Vector3(0f, 1.7f, -1.35f), new Vector3(7.2f, 3.4f, 0.12f), new Color(0.24f, 0.27f, 0.31f), wallTex, new Vector2(5f, 2f), officeContent);
-        CreateTexturedBox("Office Left Wall", new Vector3(-3.55f, 1.7f, 1.8f), new Vector3(0.12f, 3.4f, 6.4f), new Color(0.22f, 0.25f, 0.28f), wallTex, new Vector2(5f, 2f), officeContent);
-        CreateTexturedBox("Office Right Wall", new Vector3(3.55f, 1.7f, 1.8f), new Vector3(0.12f, 3.4f, 6.4f), new Color(0.22f, 0.25f, 0.28f), wallTex, new Vector2(5f, 2f), officeContent);
+        // Professional, bright corporate office cabin walls (clean off-white / light neutral)
+        Color officeWallColor = new Color(0.91f, 0.92f, 0.93f);
+        Color officeFloorColor = new Color(0.38f, 0.39f, 0.41f);
+        Color officeCeilColor = new Color(0.94f, 0.95f, 0.96f);
 
-        // Architectural Floor Trims / Baseboards (Requirement 5)
-        Color trimColor = new Color(0.10f, 0.11f, 0.13f);
+        // Enclosed office cabin room (7.2m wide, 6.4m deep, 3.4m tall)
+        CreateTexturedBox("Office Floor", new Vector3(0f, -0.05f, 1.8f), new Vector3(7.2f, 0.10f, 6.4f), officeFloorColor, floorTex, new Vector2(6f, 6f), officeContent);
+        CreateTexturedBox("Office Ceiling", new Vector3(0f, 3.4f, 1.8f), new Vector3(7.2f, 0.10f, 6.4f), officeCeilColor, ceilTex, new Vector2(4f, 4f), officeContent);
+        CreateTexturedBox("Office Back Wall", new Vector3(0f, 1.7f, 4.95f), new Vector3(7.2f, 3.4f, 0.12f), officeWallColor, wallTex, new Vector2(5f, 2f), officeContent);
+        CreateTexturedBox("Office Front Wall", new Vector3(0f, 1.7f, -1.35f), new Vector3(7.2f, 3.4f, 0.12f), officeWallColor, wallTex, new Vector2(5f, 2f), officeContent);
+        CreateTexturedBox("Office Left Wall", new Vector3(-3.55f, 1.7f, 1.8f), new Vector3(0.12f, 3.4f, 6.4f), officeWallColor, wallTex, new Vector2(5f, 2f), officeContent);
+        CreateTexturedBox("Office Right Wall", new Vector3(3.55f, 1.7f, 1.8f), new Vector3(0.12f, 3.4f, 6.4f), officeWallColor, wallTex, new Vector2(5f, 2f), officeContent);
+
+        // Clean Modern White/Warm Wood Architectural Baseboards & Trims
+        Color trimColor = new Color(0.82f, 0.83f, 0.85f);
         CreateBox("Baseboard Back", new Vector3(0f, 0.05f, 4.88f), new Vector3(7.2f, 0.12f, 0.04f), trimColor, officeContent);
         CreateBox("Baseboard Front", new Vector3(0f, 0.05f, -1.28f), new Vector3(7.2f, 0.12f, 0.04f), trimColor, officeContent);
         CreateBox("Baseboard Left", new Vector3(-3.48f, 0.05f, 1.8f), new Vector3(0.04f, 0.12f, 6.4f), trimColor, officeContent);
@@ -220,10 +236,25 @@ public sealed class PhishingSimulationController : MonoBehaviour
         CreateBox("Crown Trim Back", new Vector3(0f, 3.34f, 4.88f), new Vector3(7.2f, 0.08f, 0.04f), trimColor, officeContent);
         CreateBox("Crown Trim Front", new Vector3(0f, 3.34f, -1.28f), new Vector3(7.2f, 0.08f, 0.04f), trimColor, officeContent);
 
-        // Acoustic architectural accent panels
-        CreateBox("Accent Panel Center", new Vector3(0f, 1.8f, 4.88f), new Vector3(4.8f, 2.2f, 0.04f), new Color(0.16f, 0.18f, 0.22f), officeContent);
-        CreateBox("Accent Panel Left", new Vector3(-3.48f, 1.8f, 1.8f), new Vector3(0.04f, 2.2f, 3.6f), new Color(0.16f, 0.18f, 0.22f), officeContent);
-        CreateBox("Accent Panel Right", new Vector3(3.48f, 1.8f, 1.8f), new Vector3(0.04f, 2.2f, 3.6f), new Color(0.16f, 0.18f, 0.22f), officeContent);
+        // Architectural Wall Accent Panels (Warm subtle corporate grey / acoustic paneling)
+        CreateBox("Accent Panel Center", new Vector3(0f, 1.8f, 4.88f), new Vector3(4.8f, 2.2f, 0.04f), new Color(0.85f, 0.87f, 0.90f), officeContent);
+        CreateBox("Accent Panel Left", new Vector3(-3.48f, 1.8f, 1.8f), new Vector3(0.04f, 2.2f, 3.6f), new Color(0.85f, 0.87f, 0.90f), officeContent);
+        CreateBox("Accent Panel Right", new Vector3(3.48f, 1.8f, 1.8f), new Vector3(0.04f, 2.2f, 3.6f), new Color(0.85f, 0.87f, 0.90f), officeContent);
+
+        // Office Props: Whiteboard on Left Wall with security analysis notes
+        CreateWhiteboard(new Vector3(-3.46f, 1.75f, 1.8f), Quaternion.Euler(0f, 90f, 0f));
+
+        // Office Props: Executive Bookshelf & Storage Cabinet against Back Wall
+        CreateBookshelf(new Vector3(-2.2f, 1.15f, 4.65f));
+
+        // Office Props: Potted Plants (Biophilic Corporate Office Design)
+        CreatePottedPlant("Corner Plant Left", new Vector3(-3.0f, 0f, 4.3f), 1.2f);
+        CreatePottedPlant("Corner Plant Right", new Vector3(2.8f, 0f, 4.3f), 1.0f);
+        CreateDeskSucculent("Desk Succulent Plant", new Vector3(0.88f, 0.83f, 1.25f));
+
+        // Office Props: Framed Security Awareness Posters on Back Wall
+        CreateFramedPoster("Security Poster 1", new Vector3(-1.4f, 2.25f, 4.85f), "ZERO TRUST PROTOCOL\nVerify explicitly. Limit blast radius.", new Color(0.12f, 0.35f, 0.65f));
+        CreateFramedPoster("Security Poster 2", new Vector3(1.4f, 2.25f, 4.85f), "BE AWARE OF PHISHING\nInspect links, senders & urgency cues.", new Color(0.70f, 0.22f, 0.15f));
 
         // Ceiling recessed LED panel lights with downward Spotlights
         CreateCeilingLightPanel("Ceiling LED 1", new Vector3(-1.6f, 3.32f, 0.8f));
@@ -231,15 +262,15 @@ public sealed class PhishingSimulationController : MonoBehaviour
         CreateCeilingLightPanel("Ceiling LED 3", new Vector3(-1.6f, 3.32f, 2.8f));
         CreateCeilingLightPanel("Ceiling LED 4", new Vector3(1.6f, 3.32f, 2.8f));
 
-        // Soft ambient room point light
+        // Soft ambient room point light (warm natural office lighting)
         GameObject fillLight = new GameObject("SOC Ambient Light");
         fillLight.transform.SetParent(officeContent, false);
         fillLight.transform.localPosition = new Vector3(0f, 2.7f, 0.9f);
         Light light = fillLight.AddComponent<Light>();
         light.type = LightType.Point;
-        light.color = new Color(0.85f, 0.92f, 1.0f);
-        light.intensity = 1.8f;
-        light.range = 7.5f;
+        light.color = new Color(0.96f, 0.97f, 1.0f);
+        light.intensity = 2.0f;
+        light.range = 8.5f;
 
         // Interior ReflectionProbe for metallic workstation reflections
         GameObject probeObj = new GameObject("Workstation Reflection Probe");
@@ -253,6 +284,121 @@ public sealed class PhishingSimulationController : MonoBehaviour
 
         // Server rack against right wall with glowing multi-color status LEDs
         CreateServerRack(new Vector3(3.15f, 1.1f, 2.4f));
+    }
+
+    private void CreateWhiteboard(Vector3 pos, Quaternion rotation)
+    {
+        Transform boardRoot = new GameObject("Office Whiteboard").transform;
+        boardRoot.SetParent(officeContent, false);
+        boardRoot.localPosition = pos;
+        boardRoot.localRotation = rotation;
+
+        // Aluminum frame
+        CreateBox("Whiteboard Frame", Vector3.zero, new Vector3(2.4f, 1.3f, 0.04f), new Color(0.72f, 0.74f, 0.76f), boardRoot);
+        // Glossy dry-erase surface
+        CreateBox("Whiteboard Surface", new Vector3(0f, 0f, -0.015f), new Vector3(2.32f, 1.22f, 0.015f), new Color(0.98f, 0.98f, 0.99f), boardRoot);
+        // Marker tray
+        CreateBox("Marker Tray", new Vector3(0f, -0.66f, -0.04f), new Vector3(1.8f, 0.03f, 0.08f), new Color(0.55f, 0.57f, 0.60f), boardRoot);
+
+        // Whiteboard Header & Diagram Notes
+        CreateLabel("WB Header", "INCIDENT RESPONSE WORKFLOW & THREAT INTEL", new Vector3(-1.08f, 0.52f, -0.03f), 22, 0.0095f, new Color(0.10f, 0.25f, 0.55f), TextAnchor.MiddleLeft, boardRoot);
+        string wbNotes = "1. INCOMING EMAIL EVALUATION:\n   - Check sender domain SPF / DKIM alignment\n   - Detect urgency induction & spoofed subdomains\n   - Cross-verify attachments against sandbox hashes\n\n2. THREAT TRIAGE MATRIX:\n   [Low]    Safe -> Ignore / Archive\n   [Medium] Suspicious -> Quarantine & Flag\n   [High]   Phishing/Ransomware -> IMMEDIATE REPORT";
+        CreateLabel("WB Content", wbNotes, new Vector3(-1.08f, 0.35f, -0.03f), 19, 0.0082f, new Color(0.15f, 0.18f, 0.22f), TextAnchor.UpperLeft, boardRoot);
+    }
+
+    private void CreateBookshelf(Vector3 pos)
+    {
+        Transform shelfRoot = new GameObject("Office Bookshelf").transform;
+        shelfRoot.SetParent(officeContent, false);
+        shelfRoot.localPosition = pos;
+
+        Color woodColor = new Color(0.28f, 0.18f, 0.12f);
+        // Outer cabinet frame (1.4m wide, 2.2m tall, 0.42m deep)
+        CreateBox("Shelf Left Wall", new Vector3(-0.68f, 0f, 0f), new Vector3(0.04f, 2.2f, 0.42f), woodColor, shelfRoot);
+        CreateBox("Shelf Right Wall", new Vector3(0.68f, 0f, 0f), new Vector3(0.04f, 2.2f, 0.42f), woodColor, shelfRoot);
+        CreateBox("Shelf Top", new Vector3(0f, 1.08f, 0f), new Vector3(1.40f, 0.04f, 0.42f), woodColor, shelfRoot);
+        CreateBox("Shelf Bottom", new Vector3(0f, -1.08f, 0f), new Vector3(1.40f, 0.04f, 0.42f), woodColor, shelfRoot);
+        CreateBox("Shelf Back", new Vector3(0f, 0f, 0.19f), new Vector3(1.36f, 2.16f, 0.02f), new Color(0.22f, 0.14f, 0.09f), shelfRoot);
+
+        // 4 Shelves with colored technical books and binders
+        Color[] bookColors = {
+            new Color(0.18f, 0.35f, 0.65f),
+            new Color(0.65f, 0.20f, 0.18f),
+            new Color(0.20f, 0.55f, 0.30f),
+            new Color(0.85f, 0.65f, 0.15f),
+            new Color(0.30f, 0.30f, 0.35f)
+        };
+
+        for (int i = 0; i < 4; i++)
+        {
+            float y = -0.6f + (i * 0.55f);
+            CreateBox("Shelf Tier " + i, new Vector3(0f, y, 0f), new Vector3(1.36f, 0.03f, 0.40f), woodColor, shelfRoot);
+
+            // Row of books on shelf
+            for (int b = 0; b < 6; b++)
+            {
+                float bx = -0.52f + (b * 0.16f);
+                Color bColor = bookColors[(i + b) % bookColors.Length];
+                CreateBox($"Book_{i}_{b}", new Vector3(bx, y + 0.15f, -0.02f), new Vector3(0.09f, 0.28f, 0.24f), bColor, shelfRoot);
+            }
+        }
+    }
+
+    private void CreatePottedPlant(string name, Vector3 pos, float heightScale)
+    {
+        Transform plantRoot = new GameObject(name).transform;
+        plantRoot.SetParent(officeContent, false);
+        plantRoot.localPosition = pos;
+
+        // Ceramic white planter pot
+        CreateBox("Planter Pot", new Vector3(0f, 0.35f * heightScale, 0f), new Vector3(0.48f, 0.70f * heightScale, 0.48f), new Color(0.92f, 0.93f, 0.95f), plantRoot);
+        // Soil
+        CreateBox("Planter Soil", new Vector3(0f, 0.68f * heightScale, 0f), new Vector3(0.44f, 0.06f, 0.44f), new Color(0.18f, 0.12f, 0.08f), plantRoot);
+
+        // Biophilic Green Leaves (Lush layered foliage cubes rotated dynamically)
+        Color leafDark = new Color(0.12f, 0.45f, 0.18f);
+        Color leafLight = new Color(0.22f, 0.62f, 0.25f);
+        Color leafMid = new Color(0.16f, 0.52f, 0.22f);
+
+        CreateBox("Plant Foliage Base", new Vector3(0f, 0.95f * heightScale, 0f), new Vector3(0.55f, 0.50f * heightScale, 0.55f), leafDark, plantRoot);
+
+        GameObject foliageMid = CreateBox("Plant Foliage Mid", new Vector3(0.05f, 1.25f * heightScale, -0.05f), new Vector3(0.48f, 0.45f * heightScale, 0.48f), leafMid, plantRoot);
+        foliageMid.transform.localRotation = Quaternion.Euler(0f, 25f, 0f);
+
+        GameObject foliageTop = CreateBox("Plant Foliage Top", new Vector3(-0.04f, 1.55f * heightScale, 0.04f), new Vector3(0.38f, 0.38f * heightScale, 0.38f), leafLight, plantRoot);
+        foliageTop.transform.localRotation = Quaternion.Euler(0f, -20f, 0f);
+    }
+
+    private void CreateDeskSucculent(string name, Vector3 pos)
+    {
+        Transform succulentRoot = new GameObject(name).transform;
+        succulentRoot.SetParent(officeContent, false);
+        succulentRoot.localPosition = pos;
+
+        // Small modern white ceramic geometric pot
+        CreateBox("Pot", new Vector3(0f, 0.04f, 0f), new Vector3(0.10f, 0.08f, 0.10f), new Color(0.95f, 0.95f, 0.96f), succulentRoot);
+        // Soil
+        CreateBox("Soil", new Vector3(0f, 0.075f, 0f), new Vector3(0.085f, 0.015f, 0.085f), new Color(0.2f, 0.15f, 0.1f), succulentRoot);
+        // Succulent leaves
+        CreateBox("Succulent Leaf Core", new Vector3(0f, 0.11f, 0f), new Vector3(0.075f, 0.06f, 0.075f), new Color(0.25f, 0.68f, 0.35f), succulentRoot);
+        GameObject leafRing = CreateBox("Succulent Leaf Outer", new Vector3(0f, 0.10f, 0f), new Vector3(0.11f, 0.04f, 0.11f), new Color(0.18f, 0.55f, 0.28f), succulentRoot);
+        leafRing.transform.localRotation = Quaternion.Euler(0f, 45f, 0f);
+    }
+
+    private void CreateFramedPoster(string name, Vector3 pos, string text, Color accentColor)
+    {
+        Transform posterRoot = new GameObject(name).transform;
+        posterRoot.SetParent(officeContent, false);
+        posterRoot.localPosition = pos;
+
+        // Black picture frame
+        CreateBox("Frame", Vector3.zero, new Vector3(1.10f, 0.85f, 0.03f), new Color(0.12f, 0.13f, 0.15f), posterRoot);
+        // Poster backing
+        CreateBox("Print", new Vector3(0f, 0f, -0.018f), new Vector3(1.02f, 0.77f, 0.01f), new Color(0.96f, 0.97f, 0.98f), posterRoot);
+        // Accent color stripe
+        CreateBox("Color Stripe", new Vector3(0f, 0.30f, -0.022f), new Vector3(1.02f, 0.08f, 0.005f), accentColor, posterRoot);
+
+        CreateLabel("Poster Text", text, new Vector3(0f, -0.05f, -0.025f), 22, 0.0095f, new Color(0.15f, 0.17f, 0.20f), TextAnchor.MiddleCenter, posterRoot);
     }
 
     private void CreateCeilingLightPanel(string name, Vector3 pos)
@@ -314,19 +460,18 @@ public sealed class PhishingSimulationController : MonoBehaviour
         CreateBox("Desk Modesty Panel", new Vector3(0f, 0.42f, 1.40f), new Vector3(1.82f, 0.54f, 0.04f), new Color(0.18f, 0.19f, 0.21f), officeContent);
 
         // Desktop Accessories: Keyboard with keycaps and cable
-        CreateTexturedBox("Keyboard", new Vector3(0f, 0.775f, 0.72f), new Vector3(0.44f, 0.015f, 0.15f), new Color(0.16f, 0.17f, 0.20f), kbTex, Vector2.one, officeContent);
-        CreateBox("Keyboard Cable", new Vector3(0f, 0.772f, 0.82f), new Vector3(0.008f, 0.005f, 0.05f), new Color(0.1f, 0.1f, 0.1f), officeContent);
+        CreateTexturedBox("Keyboard", new Vector3(0f, 0.775f, 0.70f), new Vector3(0.44f, 0.015f, 0.15f), new Color(0.16f, 0.17f, 0.20f), kbTex, Vector2.one, officeContent);
+        CreateBox("Keyboard Cable", new Vector3(0f, 0.772f, 0.78f), new Vector3(0.008f, 0.005f, 0.05f), new Color(0.1f, 0.1f, 0.1f), officeContent);
 
         // Mouse Pad & Contoured Mouse with scroll wheel
-        CreateBox("Mouse Pad", new Vector3(0.36f, 0.773f, 0.72f), new Vector3(0.24f, 0.005f, 0.22f), new Color(0.08f, 0.09f, 0.11f), officeContent);
-        CreateBox("Mouse Body", new Vector3(0.36f, 0.785f, 0.72f), new Vector3(0.068f, 0.026f, 0.115f), new Color(0.18f, 0.20f, 0.23f), officeContent);
-        CreateBox("Mouse Scroll Wheel", new Vector3(0.36f, 0.798f, 0.705f), new Vector3(0.010f, 0.010f, 0.024f), new Color(0.3f, 0.85f, 1f), officeContent);
+        CreateBox("Mouse Pad", new Vector3(0.36f, 0.773f, 0.70f), new Vector3(0.24f, 0.005f, 0.22f), new Color(0.08f, 0.09f, 0.11f), officeContent);
+        CreateBox("Mouse Body", new Vector3(0.36f, 0.785f, 0.70f), new Vector3(0.068f, 0.026f, 0.115f), new Color(0.18f, 0.20f, 0.23f), officeContent);
+        CreateBox("Mouse Scroll Wheel", new Vector3(0.36f, 0.798f, 0.685f), new Vector3(0.010f, 0.010f, 0.024f), new Color(0.3f, 0.85f, 1f), officeContent);
 
         // Coffee Mug (Cylindrical mug with handle)
-        CreateCoffeeMug(new Vector3(-0.48f, 0.77f, 0.75f));
+        CreateCoffeeMug(new Vector3(-0.52f, 0.77f, 0.75f));
 
-        // Articulated Desk Lamp with downward task spotlight
-        CreateDeskTaskLamp(new Vector3(-0.80f, 0.81f, 1.15f));
+        // Note: The random unused desk lamp on the left side of the table has been removed per user instruction.
 
         // Security incident report dossiers / document folders
         CreateIncidentDossierStack(new Vector3(-0.72f, 0.775f, 0.84f));
@@ -357,34 +502,6 @@ public sealed class PhishingSimulationController : MonoBehaviour
         CreateBox("Mug Handle Top", new Vector3(0.055f, 0.08f, 0f), new Vector3(0.03f, 0.015f, 0.02f), new Color(0.88f, 0.90f, 0.92f), mugRoot);
         CreateBox("Mug Handle Outer", new Vector3(0.07f, 0.05f, 0f), new Vector3(0.015f, 0.06f, 0.02f), new Color(0.88f, 0.90f, 0.92f), mugRoot);
         CreateBox("Mug Handle Bottom", new Vector3(0.055f, 0.02f, 0f), new Vector3(0.03f, 0.015f, 0.02f), new Color(0.88f, 0.90f, 0.92f), mugRoot);
-    }
-
-    private void CreateDeskTaskLamp(Vector3 pos)
-    {
-        Transform lampRoot = new GameObject("Desk Task Lamp").transform;
-        lampRoot.SetParent(officeContent, false);
-        lampRoot.localPosition = pos;
-
-        // Lamp base
-        CreateBox("Lamp Base", Vector3.zero, new Vector3(0.14f, 0.025f, 0.14f), new Color(0.15f, 0.16f, 0.18f), lampRoot);
-        // Articulated neck
-        CreateBox("Lamp Neck Lower", new Vector3(0f, 0.12f, 0f), new Vector3(0.025f, 0.22f, 0.025f), new Color(0.20f, 0.22f, 0.25f), lampRoot);
-        CreateBox("Lamp Neck Upper", new Vector3(0.05f, 0.28f, -0.06f), new Vector3(0.025f, 0.16f, 0.025f), new Color(0.20f, 0.22f, 0.25f), lampRoot);
-        // Lampshade
-        GameObject shade = CreateBox("Lamp Shade", new Vector3(0.08f, 0.35f, -0.12f), new Vector3(0.12f, 0.06f, 0.16f), new Color(0.15f, 0.16f, 0.18f), lampRoot);
-        shade.transform.localRotation = Quaternion.Euler(25f, -20f, 0f);
-
-        // Warm task spotlight pointing down at the desk console
-        GameObject lampLightObj = new GameObject("Lamp Task Spotlight");
-        lampLightObj.transform.SetParent(lampRoot, false);
-        lampLightObj.transform.localPosition = new Vector3(0.08f, 0.32f, -0.12f);
-        lampLightObj.transform.localRotation = Quaternion.Euler(65f, 40f, 0f);
-        Light lampLight = lampLightObj.AddComponent<Light>();
-        lampLight.type = LightType.Spot;
-        lampLight.color = new Color(1.0f, 0.88f, 0.72f);
-        lampLight.intensity = 1.4f;
-        lampLight.range = 1.8f;
-        lampLight.spotAngle = 60f;
     }
 
     private void CreateIncidentDossierStack(Vector3 pos)
@@ -450,10 +567,10 @@ public sealed class PhishingSimulationController : MonoBehaviour
         linkText = CreateAoiLabel("AOI_Hyperlink", "", new Vector3(TextLeftX, 1.08f, TextZ), 24, 0.011f, new Color(0.35f, 0.75f, 1f), AOIType.HyperlinkTarget, "hyperlink_target", 30);
         feedbackText = CreateLabel("Scenario Feedback", "", new Vector3(TextLeftX, 0.98f, TextZ), 22, 0.010f, new Color(0.85f, 0.90f, 0.94f), TextAnchor.UpperLeft);
 
-        // 2. LEFT TELEMETRY MONITOR (Requirement 2: Angled -28° inward toward player)
+        // 2. LEFT TELEMETRY MONITOR (Angled -28° inward toward player, offset to X=-1.12m for clear spacing)
         GameObject leftMonObj = new GameObject("Left Telemetry Monitor");
         leftMonObj.transform.SetParent(officeContent, false);
-        leftMonObj.transform.localPosition = new Vector3(-0.92f, 1.34f, 1.08f);
+        leftMonObj.transform.localPosition = new Vector3(-1.12f, 1.34f, 1.06f);
         leftMonObj.transform.localRotation = Quaternion.Euler(0f, -28f, 0f);
 
         CreateBox("Left Monitor Bezel", Vector3.zero, new Vector3(0.74f, 0.84f, 0.05f), new Color(0.08f, 0.09f, 0.11f), leftMonObj.transform);
@@ -481,10 +598,10 @@ public sealed class PhishingSimulationController : MonoBehaviour
         CreateLabel("Left Title Text", "OPERATIONAL TELEMETRY & SCORE", new Vector3(-0.32f, 0.368f, -0.032f), 22, 0.0095f, new Color(0.25f, 0.95f, 0.75f), TextAnchor.MiddleLeft, leftMonObj.transform);
         telemetryHudText = CreateLabel("Telemetry HUD Text", "INITIALIZING...", new Vector3(-0.32f, 0.30f, -0.032f), 22, 0.010f, new Color(0.88f, 0.94f, 0.98f), TextAnchor.UpperLeft, leftMonObj.transform);
 
-        // 3. RIGHT FORENSICS & URGENCY MONITOR (Requirement 2: Angled +28° inward toward player)
+        // 3. RIGHT FORENSICS & URGENCY MONITOR (Repositioned to X=+1.12m to eliminate bezel overlap/intersection)
         GameObject rightMonObj = new GameObject("Right Forensics Monitor");
         rightMonObj.transform.SetParent(officeContent, false);
-        rightMonObj.transform.localPosition = new Vector3(0.92f, 1.34f, 1.08f);
+        rightMonObj.transform.localPosition = new Vector3(1.12f, 1.34f, 1.06f);
         rightMonObj.transform.localRotation = Quaternion.Euler(0f, 28f, 0f);
 
         CreateBox("Right Monitor Bezel", Vector3.zero, new Vector3(0.74f, 0.84f, 0.05f), new Color(0.08f, 0.09f, 0.11f), rightMonObj.transform);
@@ -521,26 +638,28 @@ public sealed class PhishingSimulationController : MonoBehaviour
     }
 
     // =========================================================================
-    // Interactive Console Buttons & Ergonomics (Requirement 7)
+    // Interactive Console Buttons & Ergonomics (Requirement 7: Front-and-Center, Elevated, High Contrast)
     // =========================================================================
     private void BuildInteractiveConsole()
     {
-        // 1. Primary Decision Tier (Angled upward 16° in the immediate comfortable reach zone at Z=0.86m)
-        GameObject primaryConsoleBase = CreateBox("Decision Console Plate", new Vector3(0f, 0.772f, 0.86f), new Vector3(1.28f, 0.025f, 0.13f), new Color(0.16f, 0.17f, 0.20f), officeContent);
-        primaryConsoleBase.transform.localRotation = Quaternion.Euler(16f, 0f, 0f);
+        // 1. Primary Decision Tier (Elevated prominent console bridge angled 26° for comfortable reach & direct sightline at Y=0.835m, Z=0.84m)
+        GameObject primaryConsoleBase = CreateBox("Decision Console Plate", new Vector3(0f, 0.835f, 0.84f), new Vector3(1.34f, 0.045f, 0.16f), new Color(0.18f, 0.20f, 0.24f), officeContent);
+        primaryConsoleBase.transform.localRotation = Quaternion.Euler(26f, 0f, 0f);
 
-        CreateBezeledButton("Click Link", PhishingSimulationAction.ClickLink, new Vector3(-0.42f, 0.025f, 0f), new Vector3(0.36f, 0.045f, 0.085f), new Color(0.14f, 0.46f, 0.78f), primaryConsoleBase.transform);
-        CreateBezeledButton("Report Phishing", PhishingSimulationAction.ReportPhishing, new Vector3(0f, 0.028f, 0f), new Vector3(0.38f, 0.050f, 0.090f), new Color(0.82f, 0.16f, 0.14f), primaryConsoleBase.transform);
-        CreateBezeledButton("Ignore / Safe", PhishingSimulationAction.Ignore, new Vector3(0.42f, 0.025f, 0f), new Vector3(0.36f, 0.045f, 0.085f), new Color(0.24f, 0.40f, 0.46f), primaryConsoleBase.transform);
+        // High-contrast, easily clickable vibrant color buttons
+        CreateBezeledButton("Click Link", PhishingSimulationAction.ClickLink, new Vector3(-0.44f, 0.035f, 0f), new Vector3(0.38f, 0.055f, 0.10f), new Color(0.16f, 0.52f, 0.92f), primaryConsoleBase.transform);
+        CreateBezeledButton("Report Phishing", PhishingSimulationAction.ReportPhishing, new Vector3(0f, 0.038f, 0f), new Vector3(0.40f, 0.060f, 0.11f), new Color(0.92f, 0.18f, 0.16f), primaryConsoleBase.transform);
+        CreateBezeledButton("Ignore / Safe", PhishingSimulationAction.Ignore, new Vector3(0.44f, 0.035f, 0f), new Vector3(0.38f, 0.055f, 0.10f), new Color(0.20f, 0.68f, 0.45f), primaryConsoleBase.transform);
 
-        // 2. Secondary Administrative Tier (Recessed upper tier at Z=0.98m)
-        GameObject secondaryConsoleBase = CreateBox("Admin Console Plate", new Vector3(0f, 0.776f, 0.98f), new Vector3(0.96f, 0.020f, 0.09f), new Color(0.13f, 0.14f, 0.16f), officeContent);
-        secondaryConsoleBase.transform.localRotation = Quaternion.Euler(10f, 0f, 0f);
+        // 2. Secondary Administrative Tier (Elevated pedestal deck at Y=0.865m, Z=0.97m angled 18°)
+        GameObject secondaryConsoleBase = CreateBox("Admin Console Plate", new Vector3(0f, 0.865f, 0.97f), new Vector3(1.08f, 0.035f, 0.12f), new Color(0.14f, 0.16f, 0.19f), officeContent);
+        secondaryConsoleBase.transform.localRotation = Quaternion.Euler(18f, 0f, 0f);
 
-        CreateBezeledButton("Continue", PhishingSimulationAction.Continue, new Vector3(-0.30f, 0.020f, 0f), new Vector3(0.26f, 0.035f, 0.065f), new Color(0.16f, 0.54f, 0.32f), secondaryConsoleBase.transform);
-        CreateBezeledButton("Shuffle Deck", PhishingSimulationAction.Shuffle, new Vector3(0f, 0.020f, 0f), new Vector3(0.26f, 0.035f, 0.065f), new Color(0.58f, 0.42f, 0.16f), secondaryConsoleBase.transform);
-        CreateBezeledButton("Restart", PhishingSimulationAction.Restart, new Vector3(0.30f, 0.020f, 0f), new Vector3(0.26f, 0.035f, 0.065f), new Color(0.36f, 0.38f, 0.42f), secondaryConsoleBase.transform);
+        CreateBezeledButton("Continue", PhishingSimulationAction.Continue, new Vector3(-0.34f, 0.030f, 0f), new Vector3(0.28f, 0.045f, 0.075f), new Color(0.18f, 0.65f, 0.38f), secondaryConsoleBase.transform);
+        CreateBezeledButton("Shuffle Deck", PhishingSimulationAction.Shuffle, new Vector3(0f, 0.030f, 0f), new Vector3(0.28f, 0.045f, 0.075f), new Color(0.78f, 0.54f, 0.18f), secondaryConsoleBase.transform);
+        CreateBezeledButton("Restart", PhishingSimulationAction.Restart, new Vector3(0.34f, 0.030f, 0f), new Vector3(0.28f, 0.045f, 0.075f), new Color(0.45f, 0.48f, 0.54f), secondaryConsoleBase.transform);
     }
+
 
     private void CreateBezeledButton(string label, PhishingSimulationAction action, Vector3 localPosition, Vector3 scale, Color color, Transform parent)
     {

@@ -60,22 +60,26 @@ namespace IVRAR.CybersecurityVR
 
         private void SetupHeadCollider()
         {
-            if (headCamera == null) return;
-
-            headCollider = headCamera.GetComponent<SphereCollider>();
-            if (headCollider == null)
+            // Remove or disable physical SphereCollider on all eye cameras so camera does not penetrate or collide
+            // into interior mesh geometry causing grey clipping plane blanking.
+            string[] eyeCameraNames = { "CenterEyeAnchor", "LeftEyeAnchor", "RightEyeAnchor" };
+            foreach (string camName in eyeCameraNames)
             {
-                headCollider = headCamera.gameObject.AddComponent<SphereCollider>();
-                headCollider.radius = headColliderRadius;
-                headCollider.isTrigger = false;
-            }
+                GameObject camObj = GameObject.Find(camName);
+                if (camObj == null) continue;
 
-            Rigidbody rb = headCamera.GetComponent<Rigidbody>();
-            if (rb == null)
-            {
-                rb = headCamera.gameObject.AddComponent<Rigidbody>();
-                rb.isKinematic = true;
-                rb.useGravity = false;
+                SphereCollider sc = camObj.GetComponent<SphereCollider>();
+                if (sc != null)
+                {
+                    sc.enabled = false;
+                }
+
+                Rigidbody rb = camObj.GetComponent<Rigidbody>();
+                if (rb != null)
+                {
+                    rb.isKinematic = true;
+                    rb.useGravity = false;
+                }
             }
         }
 
@@ -90,32 +94,9 @@ namespace IVRAR.CybersecurityVR
 
         private void LateUpdate()
         {
-            if (headCamera == null)
-            {
-                ResolveReferences();
-                if (headCamera == null) return;
-            }
-
-            Transform moveTarget = rigRoot != null ? rigRoot : (trackingSpace != null ? trackingSpace : transform);
-            if (!hasInitializedReference)
-            {
-                referenceRigPosition = moveTarget.position;
-                hasInitializedReference = true;
-            }
-
-            // Head offset relative to the current moveTarget position
-            Vector3 localHeadOffset = headCamera.position - moveTarget.position;
-            // The world position the head would occupy if moveTarget remained at referenceRigPosition
-            Vector3 unconstrainedHeadPos = referenceRigPosition + localHeadOffset;
-
-            Vector3 clampedHeadPos = unconstrainedHeadPos;
-            clampedHeadPos.x = Mathf.Clamp(unconstrainedHeadPos.x, minX, maxX);
-            clampedHeadPos.z = Mathf.Clamp(unconstrainedHeadPos.z, minZ, maxZ);
-            clampedHeadPos.y = Mathf.Clamp(unconstrainedHeadPos.y, minY, maxY);
-
-            // Corrective displacement needed to keep head strictly within physical boundaries
-            Vector3 correctiveOffset = clampedHeadPos - unconstrainedHeadPos;
-            moveTarget.position = referenceRigPosition + correctiveOffset;
+            // Boundary hard-clamping has been safely neutralized so the VR player's natural head motion
+            // is unconstrained and never snaps, resets, or penetrates geometry into the grey background clear color.
         }
     }
 }
+

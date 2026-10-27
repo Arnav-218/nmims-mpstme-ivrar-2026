@@ -69,14 +69,28 @@ namespace IVRAR.CybersecurityVR
 
         private void ConfigureAudioSources()
         {
+            EnsureAudioListener();
+
             if (sfxSource == null)
                 sfxSource = CreateAudioSource("SFX AudioSource", new Vector3(0f, 0.82f, 0.90f), false, 1.0f);
             if (alarmSource == null)
                 alarmSource = CreateAudioSource("Alarm AudioSource", new Vector3(0f, 1.34f, 1.15f), false, 1.0f);
             if (chimeSource == null)
-                chimeSource = CreateAudioSource("Chime AudioSource", new Vector3(0f, 1.34f, 1.15f), false, 0.85f);
+                chimeSource = CreateAudioSource("Chime AudioSource", new Vector3(0f, 1.34f, 1.15f), false, 1.0f);
             if (ambientSource == null)
-                ambientSource = CreateAudioSource("Ambient AudioSource", new Vector3(3.15f, 1.8f, 2.4f), true, 0.40f);
+                ambientSource = CreateAudioSource("Ambient AudioSource", new Vector3(0f, 1.5f, 1.5f), true, 0.55f);
+        }
+
+        private void EnsureAudioListener()
+        {
+            GameObject head = GameObject.Find("CenterEyeAnchor");
+            if (head != null)
+            {
+                AudioListener listener = head.GetComponent<AudioListener>();
+                if (listener == null)
+                    listener = head.AddComponent<AudioListener>();
+                listener.enabled = true;
+            }
         }
 
         private AudioSource CreateAudioSource(string sourceName, Vector3 localPosition, bool loop, float volume)
@@ -94,14 +108,15 @@ namespace IVRAR.CybersecurityVR
             source.playOnAwake = false;
             source.loop = loop;
             source.volume = volume;
-            source.spatialBlend = 0.85f; // Spatialized 3D audio in VR
-            source.minDistance = 0.5f;
-            source.maxDistance = 12.0f;
+            source.spatialBlend = 0.35f; // Well-balanced spatial blend ensuring loud, clear audibility at the player's head in VR
+            source.minDistance = 1.0f;
+            source.maxDistance = 20.0f;
             source.rolloffMode = AudioRolloffMode.Logarithmic;
             return source;
         }
 
         public void PlayButtonClick(Vector3? worldPosition = null)
+
         {
             if (sfxSource != null && buttonClickClip != null)
             {
