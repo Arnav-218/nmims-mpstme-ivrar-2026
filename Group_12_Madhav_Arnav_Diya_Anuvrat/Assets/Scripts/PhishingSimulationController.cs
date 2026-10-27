@@ -1,0 +1,1265 @@
+#if ENABLE_INPUT_SYSTEM
+using UnityEngine.InputSystem;
+#endif
+using System.Text;
+using IVRAR.CybersecurityVR;
+using UnityEngine;
+
+public sealed class PhishingSimulationController : MonoBehaviour
+{
+    public const int CurrentSceneBuildVersion = 7;
+
+    [Header("Tracking Anchors")]
+    [SerializeField] private Transform headAnchor;
+    [SerializeField] private Transform rightControllerAnchor;
+    [SerializeField] private Transform leftControllerAnchor;
+
+    [Header("Scene Hierarchy")]
+    [SerializeField] private Transform officeContent;
+    [SerializeField] private int sceneBuildVersion;
+    [SerializeField] private PhishingSimulationIntegration integration;
+
+    [Header("Center Display Text Elements")]
+    [SerializeField] private TextMesh headerText;
+    [SerializeField] private TextMesh senderText;
+    [SerializeField] private TextMesh securityBadgeText;
+    [SerializeField] private TextMesh subjectText;
+    [SerializeField] private TextMesh bodyText;
+    [SerializeField] private TextMesh linkText;
+    [SerializeField] private TextMesh feedbackText;
+
+    [Header("Side Display Text Elements")]
+    [SerializeField] private TextMesh telemetryHudText;
+    [SerializeField] private TextMesh timerHudText;
+    [SerializeField] private TextMesh forensicsHudText;
+    [SerializeField] private Transform timerProgressBar;
+
+    [Header("Interactive Elements")]
+    [SerializeField] private GameObject breachAlertPopup;
+    [SerializeField] private TextMesh breachAlertText;
+    [SerializeField] private Transform emergencyAlarmLever;
+
+    private PhishingActionButton hoveredButton;
+    private bool hoveredHyperlink;
+    private bool hoveredAlarmLever;
+    private bool decisionButtonsAvailable;
+    private LineRenderer pointerLine;
+    private Transform pointerReticle;
+    private Transform activeControllerAnchor;
+
+    private const float TextLeftX = -0.66f;
+    private const float TextZ = 1.095f;
+
+    public void Configure(Transform head, Transform rightController)
+    {
+        headAnchor = head;
+        rightControllerAnchor = rightController;
+    }
+
+    public void SetIntegration(PhishingSimulationIntegration simulationIntegration)
+    {
+        integration = simulationIntegration;
+    }
+
+    private void Start()
+    {
+        ResolveTrackingReferences();
+        InitializeAudioAndBoundaries();
+        BuildScene();
+        RecenterIfDisplaced(true);
+
+        if (pointerLine == null || pointerLine.sharedMaterial == null)
+            CreatePointerLine();
+
+        if (integration == null)
+            integration = GetComponent<PhishingSimulationIntegration>();
+
+        if (integration != null)
+            integration.StartSimulation();
+    }
+
+    private void InitializeAudioAndBoundaries()
+    {
+        if (GetComponent<PhishingAudioManager>() == null)
+            gameObject.AddComponent<PhishingAudioManager>();
+
+        if (GetComponent<WorkstationBoundaryEnforcer>() == null)
+        {
+            var enforcer = gameObject.AddComponent<WorkstationBoundaryEnforcer>();
+            enforcer.Configure(headAnchor, headAnchor != null ? headAnchor.parent : null, transform.parent);
+        }
+    }
+
+    private void ResolveTrackingReferences()
+    {
+        if (headAnchor == null)
+        {
+            GameObject head = GameObject.Find("CenterEyeAnchor");
+            if (head != null)
+                headAnchor = head.transform;
+        }
+
+        if (rightControllerAnchor == null)
+        {
+            GameObject rightHand = GameObject.Find("RightHandAnchor");
+            if (rightHand != null)
+                rightControllerAnchor = rightHand.transform;
+        }
+
+        if (leftControllerAnchor == null)
+        {
+            GameObject leftHand = GameObject.Find("LeftHandAnchor");
+            if (leftHand != null)
+                leftControllerAnchor = leftHand.transform;
+        }
+
+        activeControllerAnchor = rightControllerAnchor != null ? rightControllerAnchor : leftControllerAnchor;
+
+        EnableCameraPostProcessing();
+    }
+
+    private void EnableCameraPostProcessing()
+    {
+        string[] cameraNames = { "CenterEyeAnchor", "LeftEyeAnchor", "RightEyeAnchor" };
+        foreach (string camName in cameraNames)
+        {
+            GameObject camObj = GameObject.Find(camName);
+            if (camObj == null) continue;
+            Camera cam = camObj.GetComponent<Camera>();
+            if (cam != null)
+            {
+                var camData = camObj.GetComponent<UnityEngine.Rendering.Universal.UniversalAdditionalCameraData>();
+                if (camData != null)
+                {
+                    camData.renderPostProcessing = true;
+                    camData.antialiasing = UnityEngine.Rendering.Universal.AntialiasingMode.FastApproximateAntialiasing;
+                }
+            }
+        }
+    }
+
+    public void RecenterIfDisplaced(bool force = false)
+    {
+        if (headAnchor == null)
+            ResolveTrackingReferences();
+
+        if (headAnchor == null)
+            return;
+
+        Vector3 headPos = headAnchor.position;
+        Transform rigRoot = headAnchor.parent != null && headAnchor.parent.parent != null
+            ? headAnchor.parent.parent
+            : (headAnchor.parent != null ? headAnchor.parent : headAnchor);
+
+        if (force || Mathf.Abs(headPos.x) > 0.5f || headPos.z < -0.3f || headPos.z > 0.6f || headPos.y < 0.6f)
+        {
+            float targetY = 1.25f;
+            float dy = (headAnchor.localPosition.y < 0.3f) ? (targetY - rigRoot.position.y) : 0f;
+            Vector3 delta = new Vector3(0f - headPos.x, dy, 0.18f - headPos.z);
+            rigRoot.position += delta;
+            var enforcer = GetComponent<WorkstationBoundaryEnforcer>();
+            if (enforcer != null)
+                enforcer.SetAnchorPosition(rigRoot.position);
+            Debug.Log("[PhishingSimulationController] Workstation seated viewpoint recentered.");
+        }
+    }
+
+    public void BuildScene()
+    {
+        sceneBuildVersion = CurrentSceneBuildVersion;
+
+        for (int i = transform.childCount - 1; i >= 0; i--)
+        {
+            GameObject child = transform.GetChild(i).gameObject;
+            if (child.name == "Phishing Simulation Pointer" || child.name == "Pointer Reticle")
+                continue;
+
+            if (Application.isPlaying)
+                Destroy(child);
+            else
+                DestroyImmediate(child);
+        }
+
+        officeContent = new GameObject("Office Content").transform;
+        officeContent.SetParent(transform, false);
+
+        BuildCorporateOfficeRoom();
+        BuildExecutiveDeskAndProps();
+        BuildTripleMonitorCockpit();
+        BuildInteractiveConsole();
+        BuildBreachAlertModal();
+        CreatePointerLine();
+        SetContinueAvailable(false);
+    }
+
+    // =========================================================================
+    // 3D Corporate Office Environment (Requirement 5)
+    // =========================================================================
+    private void BuildCorporateOfficeRoom()
+    {
+        Texture2D floorTex = Resources.Load<Texture2D>("Textures/floor_tile");
+        Texture2D wallTex = Resources.Load<Texture2D>("Textures/wall_acoustic");
+        Texture2D ceilTex = Resources.Load<Texture2D>("Textures/ceiling_acoustic");
+
+        // Enclosed corporate cyber-defense workstation room (7.2m wide, 6.4m deep, 3.4m tall)
+        CreateTexturedBox("Office Floor", new Vector3(0f, -0.05f, 1.8f), new Vector3(7.2f, 0.10f, 6.4f), new Color(0.22f, 0.24f, 0.27f), floorTex, new Vector2(6f, 6f), officeContent);
+        CreateTexturedBox("Office Ceiling", new Vector3(0f, 3.4f, 1.8f), new Vector3(7.2f, 0.10f, 6.4f), new Color(0.12f, 0.13f, 0.15f), ceilTex, new Vector2(4f, 4f), officeContent);
+        CreateTexturedBox("Office Back Wall", new Vector3(0f, 1.7f, 4.95f), new Vector3(7.2f, 3.4f, 0.12f), new Color(0.24f, 0.27f, 0.31f), wallTex, new Vector2(5f, 2f), officeContent);
+        CreateTexturedBox("Office Front Wall", new Vector3(0f, 1.7f, -1.35f), new Vector3(7.2f, 3.4f, 0.12f), new Color(0.24f, 0.27f, 0.31f), wallTex, new Vector2(5f, 2f), officeContent);
+        CreateTexturedBox("Office Left Wall", new Vector3(-3.55f, 1.7f, 1.8f), new Vector3(0.12f, 3.4f, 6.4f), new Color(0.22f, 0.25f, 0.28f), wallTex, new Vector2(5f, 2f), officeContent);
+        CreateTexturedBox("Office Right Wall", new Vector3(3.55f, 1.7f, 1.8f), new Vector3(0.12f, 3.4f, 6.4f), new Color(0.22f, 0.25f, 0.28f), wallTex, new Vector2(5f, 2f), officeContent);
+
+        // Architectural Floor Trims / Baseboards (Requirement 5)
+        Color trimColor = new Color(0.10f, 0.11f, 0.13f);
+        CreateBox("Baseboard Back", new Vector3(0f, 0.05f, 4.88f), new Vector3(7.2f, 0.12f, 0.04f), trimColor, officeContent);
+        CreateBox("Baseboard Front", new Vector3(0f, 0.05f, -1.28f), new Vector3(7.2f, 0.12f, 0.04f), trimColor, officeContent);
+        CreateBox("Baseboard Left", new Vector3(-3.48f, 0.05f, 1.8f), new Vector3(0.04f, 0.12f, 6.4f), trimColor, officeContent);
+        CreateBox("Baseboard Right", new Vector3(3.48f, 0.05f, 1.8f), new Vector3(0.04f, 0.12f, 6.4f), trimColor, officeContent);
+
+        // Ceiling Crown Trims
+        CreateBox("Crown Trim Back", new Vector3(0f, 3.34f, 4.88f), new Vector3(7.2f, 0.08f, 0.04f), trimColor, officeContent);
+        CreateBox("Crown Trim Front", new Vector3(0f, 3.34f, -1.28f), new Vector3(7.2f, 0.08f, 0.04f), trimColor, officeContent);
+
+        // Acoustic architectural accent panels
+        CreateBox("Accent Panel Center", new Vector3(0f, 1.8f, 4.88f), new Vector3(4.8f, 2.2f, 0.04f), new Color(0.16f, 0.18f, 0.22f), officeContent);
+        CreateBox("Accent Panel Left", new Vector3(-3.48f, 1.8f, 1.8f), new Vector3(0.04f, 2.2f, 3.6f), new Color(0.16f, 0.18f, 0.22f), officeContent);
+        CreateBox("Accent Panel Right", new Vector3(3.48f, 1.8f, 1.8f), new Vector3(0.04f, 2.2f, 3.6f), new Color(0.16f, 0.18f, 0.22f), officeContent);
+
+        // Ceiling recessed LED panel lights with downward Spotlights
+        CreateCeilingLightPanel("Ceiling LED 1", new Vector3(-1.6f, 3.32f, 0.8f));
+        CreateCeilingLightPanel("Ceiling LED 2", new Vector3(1.6f, 3.32f, 0.8f));
+        CreateCeilingLightPanel("Ceiling LED 3", new Vector3(-1.6f, 3.32f, 2.8f));
+        CreateCeilingLightPanel("Ceiling LED 4", new Vector3(1.6f, 3.32f, 2.8f));
+
+        // Soft ambient room point light
+        GameObject fillLight = new GameObject("SOC Ambient Light");
+        fillLight.transform.SetParent(officeContent, false);
+        fillLight.transform.localPosition = new Vector3(0f, 2.7f, 0.9f);
+        Light light = fillLight.AddComponent<Light>();
+        light.type = LightType.Point;
+        light.color = new Color(0.85f, 0.92f, 1.0f);
+        light.intensity = 1.8f;
+        light.range = 7.5f;
+
+        // Interior ReflectionProbe for metallic workstation reflections
+        GameObject probeObj = new GameObject("Workstation Reflection Probe");
+        probeObj.transform.SetParent(officeContent, false);
+        probeObj.transform.localPosition = new Vector3(0f, 1.5f, 1.5f);
+        ReflectionProbe probe = probeObj.AddComponent<ReflectionProbe>();
+        probe.mode = UnityEngine.Rendering.ReflectionProbeMode.Realtime;
+        probe.refreshMode = UnityEngine.Rendering.ReflectionProbeRefreshMode.OnAwake;
+        probe.size = new Vector3(7.2f, 3.4f, 6.4f);
+        probe.boxProjection = true;
+
+        // Server rack against right wall with glowing multi-color status LEDs
+        CreateServerRack(new Vector3(3.15f, 1.1f, 2.4f));
+    }
+
+    private void CreateCeilingLightPanel(string name, Vector3 pos)
+    {
+        GameObject panel = CreateBox(name, pos, new Vector3(1.1f, 0.04f, 0.7f), new Color(0.92f, 0.96f, 1.0f), officeContent);
+        Renderer panelRend = panel.GetComponent<Renderer>();
+        Material mat = Application.isPlaying ? panelRend.material : panelRend.sharedMaterial;
+        if (mat != null && mat.HasProperty("_EmissionColor"))
+        {
+            mat.EnableKeyword("_EMISSION");
+            mat.SetColor("_EmissionColor", new Color(0.75f, 0.88f, 1.0f) * 1.5f);
+        }
+
+        // Attach downward spotlight casting realistic desk illumination
+        GameObject spotObj = new GameObject(name + " Spotlight");
+        spotObj.transform.SetParent(panel.transform, false);
+        spotObj.transform.localPosition = new Vector3(0f, -0.05f, 0f);
+        spotObj.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+        Light spot = spotObj.AddComponent<Light>();
+        spot.type = LightType.Spot;
+        spot.color = new Color(0.90f, 0.95f, 1.0f);
+        spot.intensity = 1.2f;
+        spot.range = 4.0f;
+        spot.spotAngle = 75f;
+    }
+
+    private void CreateServerRack(Vector3 pos)
+    {
+        CreateBox("Server Rack Body", pos, new Vector3(0.65f, 2.1f, 0.75f), new Color(0.11f, 0.12f, 0.14f), officeContent);
+        for (int i = 0; i < 5; i++)
+        {
+            float y = pos.y + 0.75f - (i * 0.32f);
+            Color ledColor = (i % 2 == 0) ? new Color(0f, 0.9f, 0.95f) : (i == 3 ? new Color(1f, 0.7f, 0f) : new Color(0.1f, 0.95f, 0.3f));
+            GameObject led = CreateBox("Server LED " + i, new Vector3(pos.x - 0.33f, y, pos.z - 0.2f + (i * 0.08f)), new Vector3(0.03f, 0.03f, 0.03f), ledColor, officeContent);
+            Renderer ledRend = led.GetComponent<Renderer>();
+            Material ledMat = Application.isPlaying ? ledRend.material : ledRend.sharedMaterial;
+            if (ledMat != null && ledMat.HasProperty("_EmissionColor"))
+            {
+                ledMat.EnableKeyword("_EMISSION");
+                ledMat.SetColor("_EmissionColor", ledColor * 1.8f);
+            }
+        }
+    }
+
+    // =========================================================================
+    // Executive Workstation Desk & Props (Requirement 5)
+    // =========================================================================
+    private void BuildExecutiveDeskAndProps()
+    {
+        Texture2D deskTex = Resources.Load<Texture2D>("Textures/desk_wood");
+        Texture2D kbTex = Resources.Load<Texture2D>("Textures/keyboard_map");
+
+        // Ergonomic Executive Desk at Z=1.05m
+        CreateTexturedBox("Desk Top", new Vector3(0f, 0.74f, 1.05f), new Vector3(2.10f, 0.06f, 0.92f), new Color(0.36f, 0.22f, 0.15f), deskTex, new Vector2(2f, 1f), officeContent);
+        CreateBox("Desk Bevel Trim Front", new Vector3(0f, 0.74f, 0.585f), new Vector3(2.12f, 0.065f, 0.015f), new Color(0.14f, 0.15f, 0.17f), officeContent);
+        CreateBox("Desk Monitor Riser", new Vector3(0f, 0.81f, 1.22f), new Vector3(1.95f, 0.08f, 0.38f), new Color(0.24f, 0.15f, 0.10f), officeContent);
+        CreateBox("Desk Left Leg", new Vector3(-0.95f, 0.36f, 1.05f), new Vector3(0.08f, 0.70f, 0.78f), new Color(0.18f, 0.19f, 0.21f), officeContent);
+        CreateBox("Desk Right Leg", new Vector3(0.95f, 0.36f, 1.05f), new Vector3(0.08f, 0.70f, 0.78f), new Color(0.18f, 0.19f, 0.21f), officeContent);
+        CreateBox("Desk Modesty Panel", new Vector3(0f, 0.42f, 1.40f), new Vector3(1.82f, 0.54f, 0.04f), new Color(0.18f, 0.19f, 0.21f), officeContent);
+
+        // Desktop Accessories: Keyboard with keycaps and cable
+        CreateTexturedBox("Keyboard", new Vector3(0f, 0.775f, 0.72f), new Vector3(0.44f, 0.015f, 0.15f), new Color(0.16f, 0.17f, 0.20f), kbTex, Vector2.one, officeContent);
+        CreateBox("Keyboard Cable", new Vector3(0f, 0.772f, 0.82f), new Vector3(0.008f, 0.005f, 0.05f), new Color(0.1f, 0.1f, 0.1f), officeContent);
+
+        // Mouse Pad & Contoured Mouse with scroll wheel
+        CreateBox("Mouse Pad", new Vector3(0.36f, 0.773f, 0.72f), new Vector3(0.24f, 0.005f, 0.22f), new Color(0.08f, 0.09f, 0.11f), officeContent);
+        CreateBox("Mouse Body", new Vector3(0.36f, 0.785f, 0.72f), new Vector3(0.068f, 0.026f, 0.115f), new Color(0.18f, 0.20f, 0.23f), officeContent);
+        CreateBox("Mouse Scroll Wheel", new Vector3(0.36f, 0.798f, 0.705f), new Vector3(0.010f, 0.010f, 0.024f), new Color(0.3f, 0.85f, 1f), officeContent);
+
+        // Coffee Mug (Cylindrical mug with handle)
+        CreateCoffeeMug(new Vector3(-0.48f, 0.77f, 0.75f));
+
+        // Articulated Desk Lamp with downward task spotlight
+        CreateDeskTaskLamp(new Vector3(-0.80f, 0.81f, 1.15f));
+
+        // Security incident report dossiers / document folders
+        CreateIncidentDossierStack(new Vector3(-0.72f, 0.775f, 0.84f));
+
+        // Cable management trunk drop
+        CreateBox("Cable Trunk Desk Drop", new Vector3(0f, 0.40f, 1.25f), new Vector3(0.08f, 0.72f, 0.06f), new Color(0.12f, 0.13f, 0.15f), officeContent);
+
+        // Physical Emergency Phishing Report Alarm on right corner of desk
+        GameObject alarmBase = CreateBox("Emergency Alarm Base", new Vector3(0.70f, 0.78f, 0.82f), new Vector3(0.16f, 0.035f, 0.16f), new Color(0.22f, 0.23f, 0.25f), officeContent);
+        GameObject alarmButton = CreateBox("Emergency Report Alarm", new Vector3(0.70f, 0.815f, 0.82f), new Vector3(0.11f, 0.045f, 0.11f), new Color(0.88f, 0.14f, 0.14f), officeContent);
+        emergencyAlarmLever = alarmButton.transform;
+        BoxCollider alarmCol = alarmButton.GetComponent<BoxCollider>();
+        if (alarmCol != null) alarmCol.isTrigger = false;
+        CreateLabel("Alarm Label", "EMERGENCY\nREPORT", new Vector3(0f, 0.045f * 0.5f + 0.002f, 0f), 20, 0.008f, Color.white, TextAnchor.MiddleCenter, alarmButton.transform, Quaternion.Euler(90f, 0f, 0f));
+    }
+
+    private void CreateCoffeeMug(Vector3 pos)
+    {
+        Transform mugRoot = new GameObject("Coffee Mug").transform;
+        mugRoot.SetParent(officeContent, false);
+        mugRoot.localPosition = pos;
+
+        // Mug outer body
+        CreateBox("Mug Body", new Vector3(0f, 0.05f, 0f), new Vector3(0.085f, 0.10f, 0.085f), new Color(0.88f, 0.90f, 0.92f), mugRoot);
+        // Mug coffee surface
+        CreateBox("Coffee Surface", new Vector3(0f, 0.095f, 0f), new Vector3(0.075f, 0.005f, 0.075f), new Color(0.25f, 0.15f, 0.10f), mugRoot);
+        // Mug handle
+        CreateBox("Mug Handle Top", new Vector3(0.055f, 0.08f, 0f), new Vector3(0.03f, 0.015f, 0.02f), new Color(0.88f, 0.90f, 0.92f), mugRoot);
+        CreateBox("Mug Handle Outer", new Vector3(0.07f, 0.05f, 0f), new Vector3(0.015f, 0.06f, 0.02f), new Color(0.88f, 0.90f, 0.92f), mugRoot);
+        CreateBox("Mug Handle Bottom", new Vector3(0.055f, 0.02f, 0f), new Vector3(0.03f, 0.015f, 0.02f), new Color(0.88f, 0.90f, 0.92f), mugRoot);
+    }
+
+    private void CreateDeskTaskLamp(Vector3 pos)
+    {
+        Transform lampRoot = new GameObject("Desk Task Lamp").transform;
+        lampRoot.SetParent(officeContent, false);
+        lampRoot.localPosition = pos;
+
+        // Lamp base
+        CreateBox("Lamp Base", Vector3.zero, new Vector3(0.14f, 0.025f, 0.14f), new Color(0.15f, 0.16f, 0.18f), lampRoot);
+        // Articulated neck
+        CreateBox("Lamp Neck Lower", new Vector3(0f, 0.12f, 0f), new Vector3(0.025f, 0.22f, 0.025f), new Color(0.20f, 0.22f, 0.25f), lampRoot);
+        CreateBox("Lamp Neck Upper", new Vector3(0.05f, 0.28f, -0.06f), new Vector3(0.025f, 0.16f, 0.025f), new Color(0.20f, 0.22f, 0.25f), lampRoot);
+        // Lampshade
+        GameObject shade = CreateBox("Lamp Shade", new Vector3(0.08f, 0.35f, -0.12f), new Vector3(0.12f, 0.06f, 0.16f), new Color(0.15f, 0.16f, 0.18f), lampRoot);
+        shade.transform.localRotation = Quaternion.Euler(25f, -20f, 0f);
+
+        // Warm task spotlight pointing down at the desk console
+        GameObject lampLightObj = new GameObject("Lamp Task Spotlight");
+        lampLightObj.transform.SetParent(lampRoot, false);
+        lampLightObj.transform.localPosition = new Vector3(0.08f, 0.32f, -0.12f);
+        lampLightObj.transform.localRotation = Quaternion.Euler(65f, 40f, 0f);
+        Light lampLight = lampLightObj.AddComponent<Light>();
+        lampLight.type = LightType.Spot;
+        lampLight.color = new Color(1.0f, 0.88f, 0.72f);
+        lampLight.intensity = 1.4f;
+        lampLight.range = 1.8f;
+        lampLight.spotAngle = 60f;
+    }
+
+    private void CreateIncidentDossierStack(Vector3 pos)
+    {
+        Transform stackRoot = new GameObject("Incident Dossiers").transform;
+        stackRoot.SetParent(officeContent, false);
+        stackRoot.localPosition = pos;
+
+        // Stack of 3 security filing folders
+        CreateBox("Dossier Folder 1", new Vector3(0f, 0.010f, 0f), new Vector3(0.24f, 0.015f, 0.32f), new Color(0.58f, 0.50f, 0.35f), stackRoot);
+        CreateBox("Dossier Tab 1", new Vector3(-0.08f, 0.010f, 0.17f), new Vector3(0.07f, 0.012f, 0.025f), new Color(0.75f, 0.25f, 0.20f), stackRoot);
+
+        CreateBox("Dossier Folder 2", new Vector3(0.015f, 0.026f, -0.01f), new Vector3(0.24f, 0.015f, 0.32f), new Color(0.22f, 0.38f, 0.52f), stackRoot);
+        CreateBox("Dossier Tab 2", new Vector3(0.02f, 0.026f, 0.16f), new Vector3(0.07f, 0.012f, 0.025f), new Color(0.20f, 0.65f, 0.85f), stackRoot);
+
+        CreateBox("Dossier Folder 3", new Vector3(-0.01f, 0.042f, 0.01f), new Vector3(0.24f, 0.015f, 0.32f), new Color(0.28f, 0.32f, 0.36f), stackRoot);
+        CreateBox("Dossier Tab 3", new Vector3(0.08f, 0.042f, 0.18f), new Vector3(0.07f, 0.012f, 0.025f), new Color(0.85f, 0.70f, 0.20f), stackRoot);
+    }
+
+    // =========================================================================
+    // Triple-Monitor Cockpit UI (Requirements 2 & 3: Inward Yaw & Backplates)
+    // =========================================================================
+    private void BuildTripleMonitorCockpit()
+    {
+        // 1. CENTER ULTRAWIDE MONITOR (Main Mail Client)
+        Vector3 centerPos = new Vector3(0f, 1.34f, 1.15f);
+        GameObject centerMonObj = new GameObject("Center Main Monitor");
+        centerMonObj.transform.SetParent(officeContent, false);
+        centerMonObj.transform.localPosition = centerPos;
+
+        // Front bezel & screen
+        CreateBox("Center Monitor Bezel", Vector3.zero, new Vector3(1.54f, 0.94f, 0.05f), new Color(0.08f, 0.09f, 0.11f), centerMonObj.transform);
+        CreateBox("Center Monitor Screen", new Vector3(0f, 0f, -0.026f), new Vector3(1.50f, 0.90f, 0.005f), new Color(0.04f, 0.06f, 0.09f), centerMonObj.transform);
+
+        // Solid Opaque Backplate Casing (Requirement 3: Eliminates reverse-side text visibility)
+        CreateBox("Center Monitor Back Casing", new Vector3(0f, 0f, 0.045f), new Vector3(1.56f, 0.96f, 0.08f), new Color(0.06f, 0.07f, 0.08f), centerMonObj.transform);
+        CreateBox("Center VESA Plate", new Vector3(0f, 0f, 0.090f), new Vector3(0.24f, 0.24f, 0.025f), new Color(0.14f, 0.15f, 0.18f), centerMonObj.transform);
+
+        // Center Monitor Heavy Dual-Column Stand resting on riser
+        CreateBox("Center Monitor Stand Left", new Vector3(-0.15f, -0.46f, 0.05f), new Vector3(0.06f, 0.26f, 0.10f), new Color(0.18f, 0.19f, 0.22f), centerMonObj.transform);
+        CreateBox("Center Monitor Stand Right", new Vector3(0.15f, -0.46f, 0.05f), new Vector3(0.06f, 0.26f, 0.10f), new Color(0.18f, 0.19f, 0.22f), centerMonObj.transform);
+        CreateBox("Center Monitor Stand Base", new Vector3(0f, -0.52f, 0.05f), new Vector3(0.42f, 0.025f, 0.22f), new Color(0.15f, 0.16f, 0.18f), centerMonObj.transform);
+
+        // Center glowing blue status power LED
+        GameObject centerLed = CreateBox("Center Power LED", new Vector3(0f, -0.455f, -0.027f), new Vector3(0.025f, 0.010f, 0.005f), new Color(0.2f, 0.8f, 1f), centerMonObj.transform);
+        Renderer centerLedRend = centerLed.GetComponent<Renderer>();
+        Material centerLedMat = Application.isPlaying ? centerLedRend.material : centerLedRend.sharedMaterial;
+        if (centerLedMat != null && centerLedMat.HasProperty("_EmissionColor"))
+        {
+            centerLedMat.EnableKeyword("_EMISSION");
+            centerLedMat.SetColor("_EmissionColor", new Color(0.2f, 0.8f, 1f) * 1.5f);
+        }
+
+        // Center Monitor Titlebar
+        CreateBox("Titlebar Bar", new Vector3(0f, 0.415f, -0.028f), new Vector3(1.48f, 0.055f, 0.005f), new Color(0.10f, 0.18f, 0.28f), centerMonObj.transform);
+        headerText = CreateLabel("Titlebar Text", "CYBER-DEFENSE WORKSTATION  //  SECURE MAIL CLIENT v4.2", centerPos + new Vector3(-0.68f, 0.418f, -0.032f), 24, 0.0105f, new Color(0.40f, 0.85f, 1f), TextAnchor.MiddleLeft);
+
+        // Center Monitor 5 Eye-Gaze AOIs
+        senderText = CreateAoiLabel("AOI_SenderHeader", "", new Vector3(TextLeftX, 1.68f, TextZ), 26, 0.0115f, Color.white, AOIType.SenderHeader, "sender_header", 20);
+        securityBadgeText = CreateAoiLabel("AOI_SecurityBadge", "", new Vector3(TextLeftX, 1.58f, TextZ), 24, 0.011f, new Color(0.2f, 0.9f, 0.5f), AOIType.SecurityBadge, "security_badge", 25);
+        subjectText = CreateAoiLabel("AOI_SubjectLine", "", new Vector3(TextLeftX, 1.48f, TextZ), 26, 0.0115f, new Color(1f, 0.82f, 0.38f), AOIType.SubjectLine, "subject_line", 10);
+        bodyText = CreateAoiLabel("AOI_EmailBody", "", new Vector3(TextLeftX, 1.38f, TextZ), 23, 0.0102f, new Color(0.90f, 0.93f, 0.96f), AOIType.EmailBody, "email_body", 1);
+        linkText = CreateAoiLabel("AOI_Hyperlink", "", new Vector3(TextLeftX, 1.08f, TextZ), 24, 0.011f, new Color(0.35f, 0.75f, 1f), AOIType.HyperlinkTarget, "hyperlink_target", 30);
+        feedbackText = CreateLabel("Scenario Feedback", "", new Vector3(TextLeftX, 0.98f, TextZ), 22, 0.010f, new Color(0.85f, 0.90f, 0.94f), TextAnchor.UpperLeft);
+
+        // 2. LEFT TELEMETRY MONITOR (Requirement 2: Angled -28° inward toward player)
+        GameObject leftMonObj = new GameObject("Left Telemetry Monitor");
+        leftMonObj.transform.SetParent(officeContent, false);
+        leftMonObj.transform.localPosition = new Vector3(-0.92f, 1.34f, 1.08f);
+        leftMonObj.transform.localRotation = Quaternion.Euler(0f, -28f, 0f);
+
+        CreateBox("Left Monitor Bezel", Vector3.zero, new Vector3(0.74f, 0.84f, 0.05f), new Color(0.08f, 0.09f, 0.11f), leftMonObj.transform);
+        CreateBox("Left Monitor Screen", new Vector3(0f, 0f, -0.026f), new Vector3(0.70f, 0.80f, 0.005f), new Color(0.035f, 0.055f, 0.08f), leftMonObj.transform);
+
+        // Solid Opaque Backplate Casing (Requirement 3)
+        CreateBox("Left Monitor Back Casing", new Vector3(0f, 0f, 0.045f), new Vector3(0.76f, 0.86f, 0.08f), new Color(0.06f, 0.07f, 0.08f), leftMonObj.transform);
+        CreateBox("Left VESA Plate", new Vector3(0f, 0f, 0.090f), new Vector3(0.18f, 0.18f, 0.025f), new Color(0.14f, 0.15f, 0.18f), leftMonObj.transform);
+
+        // Articulated Mounting Bracket connecting to desk riser
+        CreateBox("Left Mount Arm Upper", new Vector3(0.12f, -0.38f, 0.08f), new Vector3(0.05f, 0.16f, 0.08f), new Color(0.18f, 0.20f, 0.23f), leftMonObj.transform);
+        CreateBox("Left Mount Arm Lower", new Vector3(0.18f, -0.48f, 0.12f), new Vector3(0.06f, 0.18f, 0.08f), new Color(0.18f, 0.20f, 0.23f), leftMonObj.transform);
+
+        // Status LED
+        GameObject leftLed = CreateBox("Left Telemetry LED", new Vector3(0.31f, -0.405f, -0.027f), new Vector3(0.015f, 0.015f, 0.005f), new Color(0.2f, 0.95f, 0.6f), leftMonObj.transform);
+        Renderer leftLedRend = leftLed.GetComponent<Renderer>();
+        Material leftLedMat = Application.isPlaying ? leftLedRend.material : leftLedRend.sharedMaterial;
+        if (leftLedMat != null && leftLedMat.HasProperty("_EmissionColor"))
+        {
+            leftLedMat.EnableKeyword("_EMISSION");
+            leftLedMat.SetColor("_EmissionColor", new Color(0.2f, 0.95f, 0.6f) * 1.5f);
+        }
+
+        CreateBox("Left Monitor Titlebar", new Vector3(0f, 0.365f, -0.028f), new Vector3(0.68f, 0.05f, 0.005f), new Color(0.12f, 0.22f, 0.20f), leftMonObj.transform);
+        CreateLabel("Left Title Text", "OPERATIONAL TELEMETRY & SCORE", new Vector3(-0.32f, 0.368f, -0.032f), 22, 0.0095f, new Color(0.25f, 0.95f, 0.75f), TextAnchor.MiddleLeft, leftMonObj.transform);
+        telemetryHudText = CreateLabel("Telemetry HUD Text", "INITIALIZING...", new Vector3(-0.32f, 0.30f, -0.032f), 22, 0.010f, new Color(0.88f, 0.94f, 0.98f), TextAnchor.UpperLeft, leftMonObj.transform);
+
+        // 3. RIGHT FORENSICS & URGENCY MONITOR (Requirement 2: Angled +28° inward toward player)
+        GameObject rightMonObj = new GameObject("Right Forensics Monitor");
+        rightMonObj.transform.SetParent(officeContent, false);
+        rightMonObj.transform.localPosition = new Vector3(0.92f, 1.34f, 1.08f);
+        rightMonObj.transform.localRotation = Quaternion.Euler(0f, 28f, 0f);
+
+        CreateBox("Right Monitor Bezel", Vector3.zero, new Vector3(0.74f, 0.84f, 0.05f), new Color(0.08f, 0.09f, 0.11f), rightMonObj.transform);
+        CreateBox("Right Monitor Screen", new Vector3(0f, 0f, -0.026f), new Vector3(0.70f, 0.80f, 0.005f), new Color(0.04f, 0.05f, 0.07f), rightMonObj.transform);
+
+        // Solid Opaque Backplate Casing (Requirement 3)
+        CreateBox("Right Monitor Back Casing", new Vector3(0f, 0f, 0.045f), new Vector3(0.76f, 0.86f, 0.08f), new Color(0.06f, 0.07f, 0.08f), rightMonObj.transform);
+        CreateBox("Right VESA Plate", new Vector3(0f, 0f, 0.090f), new Vector3(0.18f, 0.18f, 0.025f), new Color(0.14f, 0.15f, 0.18f), rightMonObj.transform);
+
+        // Articulated Mounting Bracket connecting to desk riser
+        CreateBox("Right Mount Arm Upper", new Vector3(-0.12f, -0.38f, 0.08f), new Vector3(0.05f, 0.16f, 0.08f), new Color(0.18f, 0.20f, 0.23f), rightMonObj.transform);
+        CreateBox("Right Mount Arm Lower", new Vector3(-0.18f, -0.48f, 0.12f), new Vector3(0.06f, 0.18f, 0.08f), new Color(0.18f, 0.20f, 0.23f), rightMonObj.transform);
+
+        // Status LED
+        GameObject rightLed = CreateBox("Right Threat LED", new Vector3(0.31f, -0.405f, -0.027f), new Vector3(0.015f, 0.015f, 0.005f), new Color(1f, 0.4f, 0.3f), rightMonObj.transform);
+        Renderer rightLedRend = rightLed.GetComponent<Renderer>();
+        Material rightLedMat = Application.isPlaying ? rightLedRend.material : rightLedRend.sharedMaterial;
+        if (rightLedMat != null && rightLedMat.HasProperty("_EmissionColor"))
+        {
+            rightLedMat.EnableKeyword("_EMISSION");
+            rightLedMat.SetColor("_EmissionColor", new Color(1f, 0.4f, 0.3f) * 1.5f);
+        }
+
+        CreateBox("Right Monitor Titlebar", new Vector3(0f, 0.365f, -0.028f), new Vector3(0.68f, 0.05f, 0.005f), new Color(0.24f, 0.14f, 0.14f), rightMonObj.transform);
+        CreateLabel("Right Title Text", "URGENCY TIMER & FORENSICS", new Vector3(-0.32f, 0.368f, -0.032f), 22, 0.0095f, new Color(1f, 0.45f, 0.35f), TextAnchor.MiddleLeft, rightMonObj.transform);
+
+        // Timer background & progress bar
+        CreateBox("Timer BG", new Vector3(0f, 0.29f, -0.028f), new Vector3(0.64f, 0.032f, 0.004f), new Color(0.12f, 0.14f, 0.16f), rightMonObj.transform);
+        GameObject timerBarObj = CreateBox("Timer Bar", new Vector3(-0.31f, 0.29f, -0.031f), new Vector3(0.62f, 0.026f, 0.004f), new Color(0.1f, 0.85f, 0.95f), rightMonObj.transform);
+        timerProgressBar = timerBarObj.transform;
+
+        timerHudText = CreateLabel("Timer Text", "TIME PRESSURE: 05:00", new Vector3(-0.32f, 0.245f, -0.032f), 21, 0.0095f, new Color(0.3f, 0.85f, 1f), TextAnchor.MiddleLeft, rightMonObj.transform);
+        forensicsHudText = CreateLabel("Forensics Text", "ANALYSIS STANDBY...", new Vector3(-0.32f, 0.19f, -0.032f), 20, 0.0095f, new Color(0.85f, 0.90f, 0.94f), TextAnchor.UpperLeft, rightMonObj.transform);
+    }
+
+    // =========================================================================
+    // Interactive Console Buttons & Ergonomics (Requirement 7)
+    // =========================================================================
+    private void BuildInteractiveConsole()
+    {
+        // 1. Primary Decision Tier (Angled upward 16° in the immediate comfortable reach zone at Z=0.86m)
+        GameObject primaryConsoleBase = CreateBox("Decision Console Plate", new Vector3(0f, 0.772f, 0.86f), new Vector3(1.28f, 0.025f, 0.13f), new Color(0.16f, 0.17f, 0.20f), officeContent);
+        primaryConsoleBase.transform.localRotation = Quaternion.Euler(16f, 0f, 0f);
+
+        CreateBezeledButton("Click Link", PhishingSimulationAction.ClickLink, new Vector3(-0.42f, 0.025f, 0f), new Vector3(0.36f, 0.045f, 0.085f), new Color(0.14f, 0.46f, 0.78f), primaryConsoleBase.transform);
+        CreateBezeledButton("Report Phishing", PhishingSimulationAction.ReportPhishing, new Vector3(0f, 0.028f, 0f), new Vector3(0.38f, 0.050f, 0.090f), new Color(0.82f, 0.16f, 0.14f), primaryConsoleBase.transform);
+        CreateBezeledButton("Ignore / Safe", PhishingSimulationAction.Ignore, new Vector3(0.42f, 0.025f, 0f), new Vector3(0.36f, 0.045f, 0.085f), new Color(0.24f, 0.40f, 0.46f), primaryConsoleBase.transform);
+
+        // 2. Secondary Administrative Tier (Recessed upper tier at Z=0.98m)
+        GameObject secondaryConsoleBase = CreateBox("Admin Console Plate", new Vector3(0f, 0.776f, 0.98f), new Vector3(0.96f, 0.020f, 0.09f), new Color(0.13f, 0.14f, 0.16f), officeContent);
+        secondaryConsoleBase.transform.localRotation = Quaternion.Euler(10f, 0f, 0f);
+
+        CreateBezeledButton("Continue", PhishingSimulationAction.Continue, new Vector3(-0.30f, 0.020f, 0f), new Vector3(0.26f, 0.035f, 0.065f), new Color(0.16f, 0.54f, 0.32f), secondaryConsoleBase.transform);
+        CreateBezeledButton("Shuffle Deck", PhishingSimulationAction.Shuffle, new Vector3(0f, 0.020f, 0f), new Vector3(0.26f, 0.035f, 0.065f), new Color(0.58f, 0.42f, 0.16f), secondaryConsoleBase.transform);
+        CreateBezeledButton("Restart", PhishingSimulationAction.Restart, new Vector3(0.30f, 0.020f, 0f), new Vector3(0.26f, 0.035f, 0.065f), new Color(0.36f, 0.38f, 0.42f), secondaryConsoleBase.transform);
+    }
+
+    private void CreateBezeledButton(string label, PhishingSimulationAction action, Vector3 localPosition, Vector3 scale, Color color, Transform parent)
+    {
+        // 1. Recessed Bezel Base Well
+        GameObject bezel = CreateBox(label + " Bezel", localPosition + new Vector3(0f, -scale.y * 0.35f, 0f), new Vector3(scale.x + 0.025f, scale.y * 0.40f, scale.z + 0.025f), new Color(0.10f, 0.11f, 0.13f), parent);
+
+        // 2. Button Plunger Keycap
+        GameObject button = CreateBox(label + " Button", localPosition, scale, color, parent);
+        PhishingActionButton actionButton = button.AddComponent<PhishingActionButton>();
+        actionButton.Initialize(action, color);
+
+        // 3. Button Label (Rotated 90° on X and parented to Button plunger so press animations displace text synchronously!)
+        CreateLabel(label + " Label", label, new Vector3(0f, scale.y * 0.5f + 0.002f, 0f), 24, 0.0115f, Color.white, TextAnchor.MiddleCenter, button.transform, Quaternion.Euler(90f, 0f, 0f));
+    }
+
+    // =========================================================================
+    // 3D Ransomware / Security Breach Modal Popup
+    // =========================================================================
+    private void BuildBreachAlertModal()
+    {
+        breachAlertPopup = new GameObject("Breach Alert Popup");
+        breachAlertPopup.transform.SetParent(officeContent, false);
+        breachAlertPopup.transform.localPosition = new Vector3(0f, 1.34f, 0.95f);
+
+        CreateBox("Breach Frame", Vector3.zero, new Vector3(1.28f, 0.68f, 0.04f), new Color(0.55f, 0.08f, 0.08f), breachAlertPopup.transform);
+        CreateBox("Breach Background", new Vector3(0f, 0f, -0.022f), new Vector3(1.22f, 0.62f, 0.005f), new Color(0.12f, 0.02f, 0.02f), breachAlertPopup.transform);
+        CreateLabel("Breach Title", "⚠ SECURITY INCIDENT: MALICIOUS PAYLOAD EXECUTED", new Vector3(0f, 0.22f, -0.028f), 26, 0.012f, new Color(1f, 0.25f, 0.25f), TextAnchor.MiddleCenter, breachAlertPopup.transform);
+        breachAlertText = CreateLabel("Breach Details", "", new Vector3(0f, 0.02f, -0.028f), 22, 0.010f, Color.white, TextAnchor.MiddleCenter, breachAlertPopup.transform);
+        CreateLabel("Breach Instruction", "Squeeze trigger on 'Continue' to review threat debrief.", new Vector3(0f, -0.22f, -0.028f), 20, 0.0095f, new Color(1f, 0.85f, 0.4f), TextAnchor.MiddleCenter, breachAlertPopup.transform);
+
+        breachAlertPopup.SetActive(false);
+    }
+
+    // =========================================================================
+    // Update Loop: Multi-Modal Controls, Raycast, & Timers
+    // =========================================================================
+    private void Update()
+    {
+        HandleKeyboardShortcuts();
+        UpdateUrgencyTimerDisplay();
+        UpdateLaserPointerRay();
+    }
+
+    private void HandleKeyboardShortcuts()
+    {
+        bool k1 = false, k2 = false, k3 = false, kCont = false, kShuf = false, kRest = false, kRec = false;
+#if ENABLE_INPUT_SYSTEM
+        if (Keyboard.current != null)
+        {
+            k1 = Keyboard.current.digit1Key.wasPressedThisFrame || Keyboard.current.numpad1Key.wasPressedThisFrame;
+            k2 = Keyboard.current.digit2Key.wasPressedThisFrame || Keyboard.current.numpad2Key.wasPressedThisFrame;
+            k3 = Keyboard.current.digit3Key.wasPressedThisFrame || Keyboard.current.numpad3Key.wasPressedThisFrame;
+            kCont = Keyboard.current.spaceKey.wasPressedThisFrame || Keyboard.current.enterKey.wasPressedThisFrame;
+            kShuf = Keyboard.current.sKey.wasPressedThisFrame;
+            kRest = Keyboard.current.backspaceKey.wasPressedThisFrame;
+            kRec = Keyboard.current.rKey.wasPressedThisFrame || Keyboard.current.cKey.wasPressedThisFrame;
+        }
+#elif ENABLE_LEGACY_INPUT_MANAGER
+        k1 = Input.GetKeyDown(KeyCode.Alpha1) || Input.GetKeyDown(KeyCode.Keypad1);
+        k2 = Input.GetKeyDown(KeyCode.Alpha2) || Input.GetKeyDown(KeyCode.Keypad2);
+        k3 = Input.GetKeyDown(KeyCode.Alpha3) || Input.GetKeyDown(KeyCode.Keypad3);
+        kCont = Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.Return);
+        kShuf = Input.GetKeyDown(KeyCode.S);
+        kRest = Input.GetKeyDown(KeyCode.Backspace);
+        kRec = Input.GetKeyDown(KeyCode.R) || Input.GetKeyDown(KeyCode.C);
+#endif
+        if (k1)
+            Activate(PhishingSimulationAction.ClickLink);
+        else if (k2)
+            Activate(PhishingSimulationAction.ReportPhishing);
+        else if (k3)
+            Activate(PhishingSimulationAction.Ignore);
+        else if (kCont)
+            Activate(PhishingSimulationAction.Continue);
+        else if (kShuf)
+            Activate(PhishingSimulationAction.Shuffle);
+        else if (kRest)
+            Activate(PhishingSimulationAction.Restart);
+        else if (kRec || OVRInput.GetDown(OVRInput.Button.Two, OVRInput.Controller.RTouch) || OVRInput.GetDown(OVRInput.Button.Two, OVRInput.Controller.LTouch))
+            RecenterIfDisplaced(true);
+    }
+
+    private void UpdateUrgencyTimerDisplay()
+    {
+        if (integration == null || integration.ScenarioManager == null || !integration.ScenarioManager.IsSessionActive)
+            return;
+
+        var mgr = integration.ScenarioManager;
+        float remaining = mgr.CurrentScenarioRemainingTime;
+        float total = mgr.CurrentScenarioTimePressure;
+
+        if (total > 0f)
+        {
+            int mins = Mathf.FloorToInt(remaining / 60f);
+            int secs = Mathf.FloorToInt(remaining % 60f);
+            timerHudText.text = $"TIME PRESSURE: {mins:D2}:{secs:D2} / {Mathf.FloorToInt(total / 60f):D2}:{Mathf.FloorToInt(total % 60f):D2}";
+
+            float ratio = Mathf.Clamp01(remaining / total);
+            if (timerProgressBar != null)
+            {
+                timerProgressBar.localScale = new Vector3(0.62f * ratio, 0.026f, 0.004f);
+                Color barColor = ratio > 0.4f ? Color.Lerp(new Color(1f, 0.7f, 0.1f), new Color(0.1f, 0.85f, 0.95f), (ratio - 0.4f) / 0.6f) : Color.Lerp(new Color(0.95f, 0.15f, 0.15f), new Color(1f, 0.7f, 0.1f), ratio / 0.4f);
+                SetRendererColor(timerProgressBar.GetComponent<Renderer>(), barColor);
+            }
+        }
+    }
+
+    private void UpdateLaserPointerRay()
+    {
+        Ray ray;
+        bool hasVrRay = false;
+
+        if (OVRInput.Get(OVRInput.Button.PrimaryIndexTrigger, OVRInput.Controller.LTouch) || OVRInput.Get(OVRInput.Button.PrimaryHandTrigger, OVRInput.Controller.LTouch))
+            activeControllerAnchor = leftControllerAnchor != null ? leftControllerAnchor : rightControllerAnchor;
+        else if (OVRInput.Get(OVRInput.Button.PrimaryIndexTrigger, OVRInput.Controller.RTouch) || OVRInput.Get(OVRInput.Button.PrimaryHandTrigger, OVRInput.Controller.RTouch))
+            activeControllerAnchor = rightControllerAnchor != null ? rightControllerAnchor : leftControllerAnchor;
+
+        if (activeControllerAnchor != null)
+        {
+            ray = new Ray(activeControllerAnchor.position, activeControllerAnchor.forward);
+            hasVrRay = true;
+        }
+        else if (Camera.main != null)
+        {
+            Vector2 mPos = new Vector2(Screen.width * 0.5f, Screen.height * 0.5f);
+#if ENABLE_INPUT_SYSTEM
+            if (Mouse.current != null) mPos = Mouse.current.position.ReadValue();
+#elif ENABLE_LEGACY_INPUT_MANAGER
+            mPos = Input.mousePosition;
+#endif
+            ray = Camera.main.ScreenPointToRay(mPos);
+        }
+        else
+            return;
+
+        RaycastHit[] hits = Physics.RaycastAll(ray, 6f);
+        PhishingActionButton nextHovered = null;
+        bool nextHyperlinkHover = false;
+        bool nextAlarmHover = false;
+        Vector3 hitPoint = ray.GetPoint(3f);
+
+        RaycastHit closestHit = default;
+        float closestDist = float.MaxValue;
+        bool foundHit = false;
+
+        for (int i = 0; i < hits.Length; i++)
+        {
+            if (hits[i].collider.isTrigger && hits[i].collider.gameObject.layer == LayerMask.NameToLayer("GazeAOI"))
+                continue;
+            if (headAnchor != null && hits[i].collider.transform.IsChildOf(headAnchor))
+                continue;
+
+            if (hits[i].distance < closestDist)
+            {
+                closestDist = hits[i].distance;
+                closestHit = hits[i];
+                foundHit = true;
+            }
+        }
+
+        if (foundHit)
+        {
+            hitPoint = closestHit.point;
+            PhishingActionButton candidate = closestHit.collider.GetComponent<PhishingActionButton>();
+            if (candidate != null && candidate.IsInteractable)
+            {
+                nextHovered = candidate;
+            }
+            else if (linkText != null && (closestHit.collider.transform == linkText.transform || closestHit.collider.transform.IsChildOf(linkText.transform)))
+            {
+                if (decisionButtonsAvailable)
+                    nextHyperlinkHover = true;
+            }
+            else if (emergencyAlarmLever != null && (closestHit.transform == emergencyAlarmLever || closestHit.transform.IsChildOf(emergencyAlarmLever)))
+            {
+                if (decisionButtonsAvailable)
+                    nextAlarmHover = true;
+            }
+        }
+
+        // Hover state updates
+        if (hoveredButton != nextHovered)
+        {
+            if (hoveredButton != null)
+                hoveredButton.SetHovered(false);
+            hoveredButton = nextHovered;
+            if (hoveredButton != null)
+            {
+                hoveredButton.SetHovered(true);
+                TriggerHapticPulse(0.2f, 0.05f);
+            }
+        }
+
+        hoveredHyperlink = nextHyperlinkHover;
+        hoveredAlarmLever = nextAlarmHover;
+
+        bool isAnyInteractive = hoveredButton != null || hoveredHyperlink || hoveredAlarmLever;
+        Color pointerColor = isAnyInteractive ? new Color(0.2f, 0.95f, 0.45f) : new Color(0.25f, 0.85f, 1f);
+
+        if (pointerLine != null)
+        {
+            pointerLine.startColor = pointerColor;
+            pointerLine.endColor = pointerColor;
+            pointerLine.SetPosition(0, ray.origin);
+            pointerLine.SetPosition(1, hitPoint);
+        }
+
+        if (pointerReticle != null)
+        {
+            pointerReticle.position = hitPoint;
+            pointerReticle.gameObject.SetActive(isAnyInteractive);
+        }
+
+        // Trigger input handling
+        bool mouseClicked = false;
+#if ENABLE_INPUT_SYSTEM
+        if (Mouse.current != null) mouseClicked = Mouse.current.leftButton.wasPressedThisFrame;
+#elif ENABLE_LEGACY_INPUT_MANAGER
+        mouseClicked = Input.GetMouseButtonDown(0);
+#endif
+        bool triggerPressed = OVRInput.GetDown(OVRInput.Button.PrimaryIndexTrigger, OVRInput.Controller.RTouch) ||
+                              OVRInput.GetDown(OVRInput.Button.PrimaryIndexTrigger, OVRInput.Controller.LTouch) ||
+                              OVRInput.GetDown(OVRInput.Button.One, OVRInput.Controller.RTouch) ||
+                              OVRInput.GetDown(OVRInput.Button.One, OVRInput.Controller.LTouch) ||
+                              mouseClicked;
+
+        if (triggerPressed)
+        {
+            if (hoveredButton != null)
+            {
+                TriggerHapticPulse(0.7f, 0.12f);
+                hoveredButton.TriggerPressFeedback();
+                Activate(hoveredButton.Action);
+            }
+            else if (hoveredHyperlink)
+            {
+                TriggerHapticPulse(0.8f, 0.15f);
+                if (PhishingAudioManager.Instance != null)
+                    PhishingAudioManager.Instance.PlayButtonClick();
+                Activate(PhishingSimulationAction.ClickLink);
+            }
+            else if (hoveredAlarmLever)
+            {
+                TriggerHapticPulse(0.9f, 0.20f);
+                if (PhishingAudioManager.Instance != null)
+                    PhishingAudioManager.Instance.PlayThreatAlarm();
+                Activate(PhishingSimulationAction.ReportPhishing);
+            }
+        }
+    }
+
+    private void TriggerHapticPulse(float amplitude, float duration)
+    {
+        OVRInput.SetControllerVibration(amplitude, amplitude, OVRInput.Controller.RTouch);
+        OVRInput.SetControllerVibration(amplitude, amplitude, OVRInput.Controller.LTouch);
+    }
+
+    private void Activate(PhishingSimulationAction action)
+    {
+        if (integration != null)
+            integration.Activate(action);
+    }
+
+    // =========================================================================
+    // Scenario Presentation & Forensic Feedback
+    // =========================================================================
+    public void ShowScenario(PhishingThreatSimulationManager.PhishingScenarioData scenario, int index, int total)
+    {
+        if (breachAlertPopup != null)
+            breachAlertPopup.SetActive(false);
+
+        senderText.text = WrapText($"From: {scenario.displayName} <{scenario.senderAddress}>", 78, false);
+
+        string sslLock = scenario.hasDomainAnomaly ? "[ ⚠ EXTERNAL / SENDER DOMAIN MISMATCH ]" : "[ 🔒 VERIFIED DOMAIN MATCH ]";
+        string attachmentTag = string.IsNullOrEmpty(scenario.attachmentName) ? "" : $"  |  [ 📎 {scenario.attachmentName} ]";
+        securityBadgeText.text = $"{sslLock}{attachmentTag}";
+        securityBadgeText.color = scenario.hasDomainAnomaly ? new Color(1f, 0.4f, 0.3f) : new Color(0.2f, 0.95f, 0.5f);
+
+        subjectText.text = WrapText($"Subject: {scenario.subjectLine}", 78, false);
+        bodyText.text = WrapText(scenario.emailBody, 82, true);
+        linkText.text = WrapText($"[ 🔗 LINK ]: {scenario.rawHyperlinkUrl}", 78, false);
+        feedbackText.text = "Aim controller beam and squeeze trigger to select action, or pull red desk alarm.";
+
+        LayoutEmailElements();
+
+        ResizeAoiCollider(senderText);
+        ResizeAoiCollider(securityBadgeText);
+        ResizeAoiCollider(subjectText);
+        ResizeAoiCollider(bodyText);
+        ResizeAoiCollider(linkText);
+
+        UpdateTelemetryDisplay(index, total);
+
+        forensicsHudText.text = $"THREAT CONTEXT:\n{WrapText(scenario.context, 40, false)}\n\nBIAS CUE INDUCTION:\n{scenario.biasType} ({scenario.difficulty})";
+
+        SetDecisionButtonsAvailable(true);
+        SetContinueAvailable(false);
+    }
+
+    public void ShowDecisionOutcome(
+        string action,
+        bool correct,
+        string classification,
+        string correctAction,
+        string feedback)
+    {
+        bool isMaliciousClick = action == "Click Link" && classification != "Legitimate";
+        if (isMaliciousClick && breachAlertPopup != null)
+        {
+            breachAlertPopup.SetActive(true);
+            breachAlertText.text = $"Malicious hyperlink executed: credentials compromised!\nExpected Defense: {correctAction}\nReview the forensic intelligence panel.";
+            if (PhishingAudioManager.Instance != null)
+                PhishingAudioManager.Instance.PlayThreatAlarm();
+        }
+        else
+        {
+            if (PhishingAudioManager.Instance != null)
+            {
+                if (correct)
+                    PhishingAudioManager.Instance.PlaySafeChime();
+                else
+                    PhishingAudioManager.Instance.PlayThreatAlarm();
+            }
+        }
+
+        string outcomeHeader = correct ? "[ ✓ DECISION ACCURATE ]" : "[ ✗ THREAT ASSESSMENT ERROR ]";
+        feedbackText.text = WrapText($"{outcomeHeader} Selected: {action}  |  Classification: {classification}\nRecommended Action: {correctAction}\n{feedback}", 84, true);
+        feedbackText.color = correct ? new Color(0.3f, 0.95f, 0.5f) : new Color(1f, 0.35f, 0.35f);
+
+        LayoutEmailElements();
+
+        if (integration != null && integration.ScenarioManager != null)
+        {
+            var mgr = integration.ScenarioManager;
+            UpdateTelemetryDisplay(mgr.CurrentScenarioIndex + 1, mgr.ScenarioCount);
+            forensicsHudText.text = $"FORENSIC ANALYSIS:\nOutcome: {(correct ? "CORRECT" : "COMPROMISED")}\nClassification: {classification}\n\nWARNING SIGNS:\n{WrapText(mgr.CurrentScenario.warningSigns, 42, false)}\n\nFEEDBACK:\n{WrapText(feedback, 42, false)}";
+        }
+
+        SetDecisionButtonsAvailable(false);
+        SetContinueAvailable(true);
+    }
+
+    public void ShowSimulationComplete()
+    {
+        senderText.text = "PHISHING SIMULATION PROTOCOL COMPLETE";
+        securityBadgeText.text = "[ 🔒 ALL SCENARIOS EVALUATED ]";
+        subjectText.text = "Session Telemetry Successfully Exported";
+        bodyText.text = "Comprehensive eye-gaze fixations, threat inspection ratios (TIR), and cognitive bias susceptibility metrics have been committed to telemetry.\n\nSelect 'Shuffle Deck' to replay balanced randomized trials or 'Restart' for sequential order.";
+        linkText.text = "";
+        feedbackText.text = "Session complete. Thank you for participating in the IVRAR VR Cybersecurity study.";
+        LayoutEmailElements();
+
+        if (integration != null && integration.ScenarioManager != null)
+        {
+            var mgr = integration.ScenarioManager;
+            UpdateTelemetryDisplay(mgr.ScenarioCount, mgr.ScenarioCount);
+            float accuracy = mgr.completedDecisionsCount > 0 ? (float)mgr.correctClassifications / mgr.completedDecisionsCount * 100f : 0f;
+            forensicsHudText.text = $"FINAL SESSION SUMMARY:\nFinal Accuracy: {accuracy:F1}%\nThreats Reported: {mgr.reportingActionsCount}\nMalicious Clicks: {mgr.maliciousClicksCount}\n\nStatus: Telemetry Committed.";
+        }
+
+        SetDecisionButtonsAvailable(false);
+        SetContinueAvailable(false);
+    }
+
+    private void UpdateTelemetryDisplay(int current, int total)
+    {
+        if (telemetryHudText == null || integration == null || integration.ScenarioManager == null)
+            return;
+
+        var mgr = integration.ScenarioManager;
+        int completed = mgr.completedDecisionsCount;
+        float accuracy = completed > 0 ? (float)mgr.correctClassifications / completed * 100f : 100.0f;
+        string accuracyStr = completed > 0 ? $"{accuracy:F1}%" : "100.0% (INITIAL)";
+
+        telemetryHudText.text =
+            $"PROGRESS: Scenario {current} of {total}\n" +
+            $"--------------------------------\n" +
+            $"DETECTION ACCURACY: {accuracyStr}\n" +
+            $"THREATS REPORTED:   {mgr.reportingActionsCount}\n" +
+            $"MALICIOUS CLICKS:   {mgr.maliciousClicksCount}\n" +
+            $"CORRECT RESPONSES:  {mgr.correctClassifications}\n" +
+            $"DECISIONS LOGGED:   {completed}\n" +
+            $"SESSION TIMER:      {mgr.CurrentScenarioElapsedTime:F1}s\n" +
+            $"--------------------------------\n" +
+            $"EYE-GAZE TRACKER:   ACTIVE (I-DT)\n" +
+            $"AOI REGISTRY:       5 ACTIVE ZONES";
+    }
+
+    private void LayoutEmailElements()
+    {
+        float currentY = 1.68f;
+        senderText.transform.localPosition = new Vector3(TextLeftX, currentY, TextZ);
+        currentY -= GetTextBlockHeight(senderText) + 0.018f;
+
+        securityBadgeText.transform.localPosition = new Vector3(TextLeftX, currentY, TextZ);
+        currentY -= GetTextBlockHeight(securityBadgeText) + 0.020f;
+
+        subjectText.transform.localPosition = new Vector3(TextLeftX, currentY, TextZ);
+        currentY -= GetTextBlockHeight(subjectText) + 0.022f;
+
+        bodyText.transform.localPosition = new Vector3(TextLeftX, currentY, TextZ);
+        currentY -= GetTextBlockHeight(bodyText) + 0.024f;
+
+        float linkY = Mathf.Min(currentY, 1.16f);
+        linkY = Mathf.Max(linkY, 1.04f);
+        linkText.transform.localPosition = new Vector3(TextLeftX, linkY, TextZ);
+
+        float feedbackY = linkY - GetTextBlockHeight(linkText) - 0.018f;
+        feedbackY = Mathf.Max(feedbackY, 0.94f);
+        feedbackText.transform.localPosition = new Vector3(TextLeftX, feedbackY, TextZ);
+    }
+
+    private static float GetTextBlockHeight(TextMesh text)
+    {
+        if (text == null || string.IsNullOrEmpty(text.text))
+            return 0f;
+
+        int lines = text.text.Split('\n').Length;
+        float lineHeight = text.fontSize * text.characterSize * 0.105f;
+        return lines * lineHeight;
+    }
+
+    private static string WrapText(string input, int maxCharsPerLine, bool compactBlankLines)
+    {
+        if (string.IsNullOrEmpty(input))
+            return string.Empty;
+
+        string normalized = input.Replace("\r\n", "\n").Replace('\r', '\n');
+        if (compactBlankLines)
+        {
+            while (normalized.Contains("\n\n"))
+                normalized = normalized.Replace("\n\n", "\n");
+        }
+
+        string[] paragraphs = normalized.Split('\n');
+        StringBuilder sb = new StringBuilder();
+
+        for (int p = 0; p < paragraphs.Length; p++)
+        {
+            if (p > 0)
+                sb.Append('\n');
+
+            string paragraph = paragraphs[p].Trim();
+            if (paragraph.Length <= maxCharsPerLine)
+            {
+                sb.Append(paragraph);
+                continue;
+            }
+
+            string[] words = paragraph.Split(' ');
+            int currentLineLength = 0;
+
+            for (int w = 0; w < words.Length; w++)
+            {
+                string word = words[w];
+                if (string.IsNullOrEmpty(word))
+                    continue;
+
+                if (currentLineLength == 0)
+                {
+                    sb.Append(word);
+                    currentLineLength = word.Length;
+                }
+                else if (currentLineLength + 1 + word.Length <= maxCharsPerLine)
+                {
+                    sb.Append(' ').Append(word);
+                    currentLineLength += 1 + word.Length;
+                }
+                else
+                {
+                    sb.Append('\n').Append(word);
+                    currentLineLength = word.Length;
+                }
+            }
+        }
+
+        return sb.ToString();
+    }
+
+    private void SetDecisionButtonsAvailable(bool available)
+    {
+        decisionButtonsAvailable = available;
+        PhishingActionButton[] buttons = officeContent.GetComponentsInChildren<PhishingActionButton>(true);
+        for (int i = 0; i < buttons.Length; i++)
+        {
+            PhishingSimulationAction action = buttons[i].Action;
+            if (action == PhishingSimulationAction.ClickLink ||
+                action == PhishingSimulationAction.ReportPhishing ||
+                action == PhishingSimulationAction.Ignore)
+            {
+                buttons[i].SetInteractable(available);
+            }
+            else if (action == PhishingSimulationAction.Shuffle || action == PhishingSimulationAction.Restart)
+            {
+                // Administrative buttons remain accessible so participant can reset or replay
+                buttons[i].SetInteractable(true);
+            }
+        }
+    }
+
+    private void SetContinueAvailable(bool available)
+    {
+        PhishingActionButton[] buttons = officeContent.GetComponentsInChildren<PhishingActionButton>(true);
+        for (int i = 0; i < buttons.Length; i++)
+        {
+            if (buttons[i].Action == PhishingSimulationAction.Continue)
+                buttons[i].SetInteractable(available);
+        }
+    }
+
+    // =========================================================================
+    // Factory Helpers with Clean URP Materials & Textures
+    // =========================================================================
+    private GameObject CreateBox(string objectName, Vector3 localPosition, Vector3 localScale, Color color, Transform parent)
+    {
+        GameObject box = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        box.name = objectName;
+        box.transform.SetParent(parent, false);
+        box.transform.localPosition = localPosition;
+        box.transform.localScale = localScale;
+
+        Shader shader = Shader.Find("Universal Render Pipeline/Lit");
+        if (shader == null)
+            shader = Shader.Find("Standard");
+        if (shader == null)
+            shader = Shader.Find("Unlit/Color");
+
+        Material mat = new Material(shader != null ? shader : Shader.Find("Sprites/Default"));
+        mat.color = color;
+        if (mat.HasProperty("_BaseColor"))
+            mat.SetColor("_BaseColor", color);
+
+        Renderer rend = box.GetComponent<Renderer>();
+        if (rend != null)
+        {
+            if (Application.isPlaying)
+                rend.material = mat;
+            else
+                rend.sharedMaterial = mat;
+            SetRendererColor(rend, color);
+        }
+
+        return box;
+    }
+
+    private GameObject CreateTexturedBox(string objectName, Vector3 localPosition, Vector3 localScale, Color color, Texture2D texture, Vector2 tiling, Transform parent)
+    {
+        GameObject box = CreateBox(objectName, localPosition, localScale, color, parent);
+        Renderer rend = box.GetComponent<Renderer>();
+        if (rend != null && texture != null)
+        {
+            Material mat = Application.isPlaying ? rend.material : rend.sharedMaterial;
+            if (mat != null)
+            {
+                if (mat.HasProperty("_BaseMap"))
+                {
+                    mat.SetTexture("_BaseMap", texture);
+                    mat.SetTextureScale("_BaseMap", tiling);
+                }
+                if (mat.HasProperty("_MainTex"))
+                {
+                    mat.SetTexture("_MainTex", texture);
+                    mat.SetTextureScale("_MainTex", tiling);
+                }
+            }
+        }
+        return box;
+    }
+
+    private TextMesh CreateLabel(
+        string objectName,
+        string value,
+        Vector3 localPosition,
+        int fontSize,
+        float characterSize,
+        Color color,
+        TextAnchor anchor,
+        Transform parent = null,
+        Quaternion? localRotation = null)
+    {
+        GameObject label = new GameObject(objectName);
+        label.transform.SetParent(parent != null ? parent : officeContent, false);
+        label.transform.localPosition = localPosition;
+        label.transform.localRotation = localRotation.HasValue ? localRotation.Value : Quaternion.identity;
+        TextMesh text = label.AddComponent<TextMesh>();
+        text.text = value;
+        text.fontSize = fontSize;
+        text.characterSize = characterSize;
+        text.anchor = anchor;
+        text.alignment = anchor == TextAnchor.MiddleCenter ? TextAlignment.Center : TextAlignment.Left;
+        text.color = color;
+        text.richText = false;
+
+        // Requirement 3: Canvas/Mesh Backface Culling
+        // Apply 3D text shader with hardware backface culling (Cull Back) to eliminate reverse-side visibility
+        Shader cullShader = Shader.Find("GUI/3D Text Shader Cull Back");
+        MeshRenderer rend = label.GetComponent<MeshRenderer>();
+        if (cullShader != null && rend != null && text.font != null && text.font.material != null)
+        {
+            Material textMat = new Material(cullShader);
+            textMat.mainTexture = text.font.material.mainTexture;
+            textMat.color = color;
+            if (Application.isPlaying)
+                rend.material = textMat;
+            else
+                rend.sharedMaterial = textMat;
+        }
+
+        return text;
+    }
+
+    private TextMesh CreateAoiLabel(
+        string objectName,
+        string value,
+        Vector3 localPosition,
+        int fontSize,
+        float characterSize,
+        Color color,
+        AOIType aoiType,
+        string aoiId,
+        int priority)
+    {
+        TextMesh text = CreateLabel(objectName, value, localPosition, fontSize, characterSize, color, TextAnchor.UpperLeft);
+        int aoiLayer = LayerMask.NameToLayer("GazeAOI");
+        if (aoiLayer < 0)
+        {
+            Debug.LogError("Cannot create gaze AOI target '" + aoiId + "': the GazeAOI layer is not configured.");
+            return text;
+        }
+
+        GameObject targetObject = new GameObject(objectName + " AOI");
+        targetObject.layer = aoiLayer;
+        targetObject.transform.SetParent(text.transform, false);
+        BoxCollider collider = targetObject.AddComponent<BoxCollider>();
+        GazeAOITarget target = targetObject.AddComponent<GazeAOITarget>();
+        target.Configure(aoiType, aoiId, priority, "active_email");
+        ResizeAoiCollider(text);
+        return text;
+    }
+
+    private static void ResizeAoiCollider(TextMesh text)
+    {
+        Transform targetTransform = text.transform.Find(text.gameObject.name + " AOI");
+        BoxCollider collider = targetTransform != null ? targetTransform.GetComponent<BoxCollider>() : null;
+        if (collider == null)
+            return;
+
+        string[] lines = text.text.Split('\n');
+        int maxLineChars = 0;
+        for (int i = 0; i < lines.Length; i++)
+        {
+            if (lines[i].Length > maxLineChars)
+                maxLineChars = lines[i].Length;
+        }
+
+        float width = Mathf.Clamp(maxLineChars * text.characterSize * text.fontSize * 0.036f, 0.25f, 1.42f);
+        float height = Mathf.Max(text.characterSize * text.fontSize * 0.105f * lines.Length, 0.035f);
+
+        collider.size = new Vector3(width, height, 0.025f);
+        collider.center = new Vector3(width * 0.5f, -height * 0.5f, 0f);
+    }
+
+    private void CreatePointerLine()
+    {
+        Transform existingLine = transform.Find("Phishing Simulation Pointer");
+        GameObject lineObject = existingLine != null ? existingLine.gameObject : new GameObject("Phishing Simulation Pointer");
+        if (existingLine == null)
+            lineObject.transform.SetParent(transform, false);
+
+        pointerLine = lineObject.GetComponent<LineRenderer>();
+        if (pointerLine == null)
+            pointerLine = lineObject.AddComponent<LineRenderer>();
+
+        pointerLine.useWorldSpace = true;
+        pointerLine.positionCount = 2;
+        pointerLine.startWidth = 0.005f;
+        pointerLine.endWidth = 0.002f;
+        Shader shader = Shader.Find("Universal Render Pipeline/Unlit");
+        if (shader == null)
+            shader = Shader.Find("Universal Render Pipeline/Lit");
+        if (shader == null)
+            shader = Shader.Find("Unlit/Color");
+        if (shader == null)
+            shader = Shader.Find("Standard");
+
+        if (shader != null)
+        {
+            Material pointerMaterial = new Material(shader);
+            pointerMaterial.color = new Color(0.25f, 0.85f, 1f);
+            pointerLine.sharedMaterial = pointerMaterial;
+            SetRendererColor(pointerLine, new Color(0.25f, 0.85f, 1f));
+        }
+
+        Transform existingReticle = transform.Find("Pointer Reticle");
+        GameObject reticleObj = existingReticle != null ? existingReticle.gameObject : GameObject.CreatePrimitive(PrimitiveType.Sphere);
+        reticleObj.name = "Pointer Reticle";
+        if (existingReticle == null)
+            reticleObj.transform.SetParent(transform, false);
+
+        pointerReticle = reticleObj.transform;
+        pointerReticle.localScale = new Vector3(0.016f, 0.016f, 0.016f);
+        Collider retCol = reticleObj.GetComponent<Collider>();
+        if (retCol != null)
+            retCol.enabled = false;
+
+        Material reticleMat = new Material(shader != null ? shader : Shader.Find("Sprites/Default"));
+        reticleMat.color = new Color(0.2f, 0.95f, 0.45f);
+        reticleObj.GetComponent<Renderer>().material = reticleMat;
+        reticleObj.SetActive(false);
+    }
+
+    private static void SetRendererColor(Renderer renderer, Color color)
+    {
+        if (renderer == null)
+            return;
+        MaterialPropertyBlock properties = new MaterialPropertyBlock();
+        renderer.GetPropertyBlock(properties);
+        properties.SetColor("_BaseColor", color);
+        properties.SetColor("_Color", color);
+        renderer.SetPropertyBlock(properties);
+    }
+}
