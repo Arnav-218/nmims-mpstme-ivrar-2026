@@ -1,0 +1,5 @@
+﻿schema_version,participant_pseudo_id,session_id,trial_id,scenario_id,provenance,is_synthetic,aoi_type,aoi_id,is_diagnostic,fixation_dwell_ms,fixation_count,mean_fixation_duration_ms,max_fixation_duration_ms,time_to_first_fixation_ms,first_fixation_order,revisit_count,raw_sample_dwell_ms,raw_sample_count
+1.0.0,P01,20261028_111310_994_eae9812e,S26-0004,S26,HeadDirection_Fallback,false,HyperlinkTarget,hyperlink_target,true,319.58,1,319.58,319.58,69.84,1,0,444.41,7
+1.0.0,P01,20261028_111310_994_eae9812e,S24-0015,S24,HeadDirection_Fallback,false,HyperlinkTarget,hyperlink_target,true,0.00,0,0.00,0.00,NA,NA,0,125.04,2
+1.0.0,P01,20261028_111310_994_eae9812e,S07-0016,S07,HeadDirection_Fallback,false,HyperlinkTarget,hyperlink_target,true,0.00,0,0.00,0.00,NA,NA,0,194.44,3
+1.0.0,P01,20261028_111310_994_eae9812e,S07-0040,S07,HeadDirection_Fallback,false,HyperlinkTarget,hyperlink_target,true,0.00,0,0.00,0.00,NA,NA,0,70.16,1
