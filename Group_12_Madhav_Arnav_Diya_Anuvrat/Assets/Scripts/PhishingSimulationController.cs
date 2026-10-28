@@ -38,10 +38,12 @@ public sealed class PhishingSimulationController : MonoBehaviour
     [SerializeField] private GameObject breachAlertPopup;
     [SerializeField] private TextMesh breachAlertText;
     [SerializeField] private Transform emergencyAlarmLever;
+    [SerializeField] private Transform officeChairTarget;
 
     private PhishingActionButton hoveredButton;
     private bool hoveredHyperlink;
     private bool hoveredAlarmLever;
+    private bool hoveredOfficeChair;
     private bool decisionButtonsAvailable;
     private LineRenderer pointerLine;
     private Transform pointerReticle;
@@ -541,6 +543,7 @@ public sealed class PhishingSimulationController : MonoBehaviour
         Transform chairRoot = new GameObject("Executive Office Chair").transform;
         chairRoot.SetParent(officeContent, false);
         chairRoot.localPosition = pos;
+        officeChairTarget = chairRoot;
 
         Color darkMesh = new Color(0.12f, 0.13f, 0.15f);
         Color chrome = new Color(0.75f, 0.77f, 0.80f);
@@ -554,11 +557,15 @@ public sealed class PhishingSimulationController : MonoBehaviour
         CreateBox("Chair Leg X", new Vector3(0f, 0.06f, 0f), new Vector3(0.56f, 0.035f, 0.08f), chrome, chairRoot, false);
         CreateBox("Chair Leg Z", new Vector3(0f, 0.06f, 0f), new Vector3(0.08f, 0.035f, 0.56f), chrome, chairRoot, false);
 
-        // 2. Contoured Seat Cushion (at standard ergonomic seat height 0.46m)
-        CreateBox("Chair Seat Cushion", new Vector3(0f, 0.46f, 0f), new Vector3(0.52f, 0.08f, 0.50f), cushionDark, chairRoot, false);
+        // 2. Contoured Seat Cushion (at standard ergonomic seat height 0.46m) - Trigger collider so player can click chair to sit without physical collision!
+        GameObject seatObj = CreateBox("Chair Seat Cushion", new Vector3(0f, 0.46f, 0f), new Vector3(0.52f, 0.08f, 0.50f), cushionDark, chairRoot, true);
+        Collider seatCol = seatObj.GetComponent<Collider>();
+        if (seatCol != null) seatCol.isTrigger = true;
 
         // 3. Ergonomic High-Back Mesh Rest (angled back slightly at Z = -0.22m, Y = 0.85m)
-        GameObject backrest = CreateBox("Chair High Backrest", new Vector3(0f, 0.84f, -0.22f), new Vector3(0.48f, 0.70f, 0.05f), darkMesh, chairRoot, false);
+        GameObject backrest = CreateBox("Chair High Backrest", new Vector3(0f, 0.84f, -0.22f), new Vector3(0.48f, 0.70f, 0.05f), darkMesh, chairRoot, true);
+        Collider backCol = backrest.GetComponent<Collider>();
+        if (backCol != null) backCol.isTrigger = true;
         backrest.transform.localRotation = Quaternion.Euler(-6f, 0f, 0f);
 
         // Lumbar Support & Adjustable Headrest
@@ -607,22 +614,31 @@ public sealed class PhishingSimulationController : MonoBehaviour
     }
 
     // =========================================================================
-    // Triple-Monitor Cockpit UI (Requirements 2 & 3: Inward Yaw & Backplates)
+    // Triple-Monitor Cockpit UI (Professional Matte Slate UI - No Neon Lights)
     // =========================================================================
     private void BuildTripleMonitorCockpit()
     {
+        Color bezelColor = new Color(0.10f, 0.11f, 0.13f);
+        Color screenBgColor = new Color(0.11f, 0.13f, 0.16f);
+        Color headerBarColor = new Color(0.16f, 0.19f, 0.24f);
+        Color cardSurfaceColor = new Color(0.14f, 0.16f, 0.20f);
+        Color cardSubtleColor = new Color(0.12f, 0.14f, 0.18f);
+        Color dividerColor = new Color(0.24f, 0.28f, 0.34f);
+        Color headerTextColor = new Color(0.90f, 0.93f, 0.96f);
+        Color subHeaderColor = new Color(0.70f, 0.76f, 0.84f);
+
         // 1. CENTER ULTRAWIDE MONITOR (Main Mail Client)
         Vector3 centerPos = new Vector3(0f, 1.34f, 1.15f);
         GameObject centerMonObj = new GameObject("Center Main Monitor");
         centerMonObj.transform.SetParent(officeContent, false);
         centerMonObj.transform.localPosition = centerPos;
 
-        // Front bezel & screen
-        CreateBox("Center Monitor Bezel", Vector3.zero, new Vector3(1.54f, 0.94f, 0.05f), new Color(0.08f, 0.09f, 0.11f), centerMonObj.transform);
-        CreateBox("Center Monitor Screen", new Vector3(0f, 0f, -0.026f), new Vector3(1.50f, 0.90f, 0.005f), new Color(0.04f, 0.06f, 0.09f), centerMonObj.transform);
+        // Front bezel & matte screen canvas
+        CreateBox("Center Monitor Bezel", Vector3.zero, new Vector3(1.54f, 0.94f, 0.05f), bezelColor, centerMonObj.transform);
+        CreateBox("Center Monitor Screen", new Vector3(0f, 0f, -0.026f), new Vector3(1.50f, 0.90f, 0.005f), screenBgColor, centerMonObj.transform);
 
-        // Solid Opaque Backplate Casing (Requirement 3: Eliminates reverse-side text visibility)
-        CreateBox("Center Monitor Back Casing", new Vector3(0f, 0f, 0.045f), new Vector3(1.56f, 0.96f, 0.08f), new Color(0.06f, 0.07f, 0.08f), centerMonObj.transform);
+        // Solid Opaque Backplate Casing (Eliminates reverse-side text visibility)
+        CreateBox("Center Monitor Back Casing", new Vector3(0f, 0f, 0.045f), new Vector3(1.56f, 0.96f, 0.08f), new Color(0.07f, 0.08f, 0.09f), centerMonObj.transform);
         CreateBox("Center VESA Plate", new Vector3(0f, 0f, 0.090f), new Vector3(0.24f, 0.24f, 0.025f), new Color(0.14f, 0.15f, 0.18f), centerMonObj.transform);
 
         // Center Monitor Heavy Dual-Column Stand resting on riser
@@ -630,105 +646,69 @@ public sealed class PhishingSimulationController : MonoBehaviour
         CreateBox("Center Monitor Stand Right", new Vector3(0.15f, -0.46f, 0.05f), new Vector3(0.06f, 0.26f, 0.10f), new Color(0.18f, 0.19f, 0.22f), centerMonObj.transform);
         CreateBox("Center Monitor Stand Base", new Vector3(0f, -0.52f, 0.05f), new Vector3(0.42f, 0.025f, 0.22f), new Color(0.15f, 0.16f, 0.18f), centerMonObj.transform);
 
-        // Center glowing blue status power LED
-        GameObject centerLed = CreateBox("Center Power LED", new Vector3(0f, -0.455f, -0.027f), new Vector3(0.025f, 0.010f, 0.005f), new Color(0.2f, 0.8f, 1f), centerMonObj.transform);
-        Renderer centerLedRend = centerLed.GetComponent<Renderer>();
-        Material centerLedMat = Application.isPlaying ? centerLedRend.material : centerLedRend.sharedMaterial;
-        if (centerLedMat != null && centerLedMat.HasProperty("_EmissionColor"))
-        {
-            centerLedMat.EnableKeyword("_EMISSION");
-            centerLedMat.SetColor("_EmissionColor", new Color(0.2f, 0.8f, 1f) * 1.5f);
-        }
+        // Clean Corporate Mail Client UI Layout (Matte cards & subtle neutral dividers, zero neon glow)
+        CreateBox("Titlebar Bar", new Vector3(0f, 0.415f, -0.028f), new Vector3(1.48f, 0.055f, 0.004f), headerBarColor, centerMonObj.transform, false);
+        CreateBox("Titlebar Divider", new Vector3(0f, 0.386f, -0.029f), new Vector3(1.48f, 0.003f, 0.004f), dividerColor, centerMonObj.transform, false);
+        CreateBox("Mail Header Card", new Vector3(0f, 0.235f, -0.027f), new Vector3(1.46f, 0.27f, 0.003f), cardSurfaceColor, centerMonObj.transform, false);
+        CreateBox("Mail Body Card", new Vector3(0f, -0.065f, -0.027f), new Vector3(1.46f, 0.29f, 0.003f), cardSubtleColor, centerMonObj.transform, false);
+        CreateBox("Mail Link Card", new Vector3(0f, -0.26f, -0.027f), new Vector3(1.46f, 0.065f, 0.003f), cardSurfaceColor, centerMonObj.transform, false);
+        CreateBox("Mail Footer Bar", new Vector3(0f, -0.37f, -0.027f), new Vector3(1.46f, 0.11f, 0.003f), headerBarColor, centerMonObj.transform, false);
+        headerText = CreateLabel("Titlebar Text", "ENTERPRISE MAIL CLIENT  //  INBOX MESSAGE VIEWER   [PRESS 'K' OR CLICK CHAIR TO SIT]", centerPos + new Vector3(-0.70f, 0.418f, -0.032f), 21, 0.0094f, headerTextColor, TextAnchor.MiddleLeft);
 
-        // Center Monitor Titlebar & UI Framing Panels
-        CreateBox("Titlebar Bar", new Vector3(0f, 0.415f, -0.028f), new Vector3(1.48f, 0.055f, 0.005f), new Color(0.08f, 0.16f, 0.26f), centerMonObj.transform, false);
-        CreateBox("Titlebar Accent Line", new Vector3(0f, 0.386f, -0.029f), new Vector3(1.48f, 0.004f, 0.005f), new Color(0.20f, 0.78f, 1.0f), centerMonObj.transform, false);
-        CreateBox("Mail Header Card", new Vector3(0f, 0.23f, -0.027f), new Vector3(1.46f, 0.28f, 0.003f), new Color(0.06f, 0.09f, 0.14f), centerMonObj.transform, false);
-        CreateBox("Mail Body Card", new Vector3(0f, -0.07f, -0.027f), new Vector3(1.46f, 0.29f, 0.003f), new Color(0.05f, 0.07f, 0.11f), centerMonObj.transform, false);
-        CreateBox("Mail Link Card", new Vector3(0f, -0.26f, -0.027f), new Vector3(1.46f, 0.065f, 0.003f), new Color(0.07f, 0.12f, 0.20f), centerMonObj.transform, false);
-        CreateBox("Mail Footer Bar", new Vector3(0f, -0.37f, -0.027f), new Vector3(1.46f, 0.12f, 0.003f), new Color(0.06f, 0.10f, 0.15f), centerMonObj.transform, false);
-        headerText = CreateLabel("Titlebar Text", "CYBER-DEFENSE WORKSTATION  //  SECURE MAIL CLIENT v4.2  [PRESS 'K' TO SIT/STAND]", centerPos + new Vector3(-0.70f, 0.418f, -0.032f), 22, 0.0098f, new Color(0.40f, 0.88f, 1f), TextAnchor.MiddleLeft);
+        // Center Monitor 5 Eye-Gaze AOIs (Clean neutral typography - no color-coded phishing giveaways)
+        senderText = CreateAoiLabel("AOI_SenderHeader", "", new Vector3(TextLeftX, 1.68f, TextZ), 25, 0.0110f, new Color(0.95f, 0.96f, 0.98f), AOIType.SenderHeader, "sender_header", 20);
+        securityBadgeText = CreateAoiLabel("AOI_SecurityBadge", "", new Vector3(TextLeftX, 1.58f, TextZ), 22, 0.0100f, subHeaderColor, AOIType.SecurityBadge, "security_badge", 25);
+        subjectText = CreateAoiLabel("AOI_SubjectLine", "", new Vector3(TextLeftX, 1.48f, TextZ), 25, 0.0112f, new Color(0.98f, 0.98f, 1.0f), AOIType.SubjectLine, "subject_line", 10);
+        bodyText = CreateAoiLabel("AOI_EmailBody", "", new Vector3(TextLeftX, 1.38f, TextZ), 22, 0.0100f, new Color(0.86f, 0.89f, 0.93f), AOIType.EmailBody, "email_body", 1);
+        linkText = CreateAoiLabel("AOI_Hyperlink", "", new Vector3(TextLeftX, 1.08f, TextZ), 23, 0.0105f, new Color(0.58f, 0.78f, 0.96f), AOIType.HyperlinkTarget, "hyperlink_target", 30);
+        feedbackText = CreateLabel("Scenario Feedback", "", new Vector3(TextLeftX, 0.98f, TextZ), 21, 0.0096f, subHeaderColor, TextAnchor.UpperLeft);
 
-        // Center Monitor 5 Eye-Gaze AOIs
-        senderText = CreateAoiLabel("AOI_SenderHeader", "", new Vector3(TextLeftX, 1.68f, TextZ), 26, 0.0115f, Color.white, AOIType.SenderHeader, "sender_header", 20);
-        securityBadgeText = CreateAoiLabel("AOI_SecurityBadge", "", new Vector3(TextLeftX, 1.58f, TextZ), 24, 0.011f, new Color(0.2f, 0.9f, 0.5f), AOIType.SecurityBadge, "security_badge", 25);
-        subjectText = CreateAoiLabel("AOI_SubjectLine", "", new Vector3(TextLeftX, 1.48f, TextZ), 26, 0.0115f, new Color(1f, 0.82f, 0.38f), AOIType.SubjectLine, "subject_line", 10);
-        bodyText = CreateAoiLabel("AOI_EmailBody", "", new Vector3(TextLeftX, 1.38f, TextZ), 23, 0.0102f, new Color(0.90f, 0.93f, 0.96f), AOIType.EmailBody, "email_body", 1);
-        linkText = CreateAoiLabel("AOI_Hyperlink", "", new Vector3(TextLeftX, 1.08f, TextZ), 24, 0.011f, new Color(0.35f, 0.75f, 1f), AOIType.HyperlinkTarget, "hyperlink_target", 30);
-        feedbackText = CreateLabel("Scenario Feedback", "", new Vector3(TextLeftX, 0.98f, TextZ), 22, 0.010f, new Color(0.85f, 0.90f, 0.94f), TextAnchor.UpperLeft);
-
-        // 2. LEFT TELEMETRY MONITOR (Angled -28° inward toward player, offset to X=-1.12m for clear spacing)
+        // 2. LEFT TELEMETRY MONITOR (Angled -28° inward toward player, offset to X=-1.12m)
         GameObject leftMonObj = new GameObject("Left Telemetry Monitor");
         leftMonObj.transform.SetParent(officeContent, false);
         leftMonObj.transform.localPosition = new Vector3(-1.12f, 1.34f, 1.06f);
         leftMonObj.transform.localRotation = Quaternion.Euler(0f, -28f, 0f);
 
-        CreateBox("Left Monitor Bezel", Vector3.zero, new Vector3(0.74f, 0.84f, 0.05f), new Color(0.08f, 0.09f, 0.11f), leftMonObj.transform);
-        CreateBox("Left Monitor Screen", new Vector3(0f, 0f, -0.026f), new Vector3(0.70f, 0.80f, 0.005f), new Color(0.035f, 0.055f, 0.08f), leftMonObj.transform);
-
-        // Solid Opaque Backplate Casing (Requirement 3)
-        CreateBox("Left Monitor Back Casing", new Vector3(0f, 0f, 0.045f), new Vector3(0.76f, 0.86f, 0.08f), new Color(0.06f, 0.07f, 0.08f), leftMonObj.transform);
+        CreateBox("Left Monitor Bezel", Vector3.zero, new Vector3(0.74f, 0.84f, 0.05f), bezelColor, leftMonObj.transform);
+        CreateBox("Left Monitor Screen", new Vector3(0f, 0f, -0.026f), new Vector3(0.70f, 0.80f, 0.005f), screenBgColor, leftMonObj.transform);
+        CreateBox("Left Monitor Back Casing", new Vector3(0f, 0f, 0.045f), new Vector3(0.76f, 0.86f, 0.08f), new Color(0.07f, 0.08f, 0.09f), leftMonObj.transform);
         CreateBox("Left VESA Plate", new Vector3(0f, 0f, 0.090f), new Vector3(0.18f, 0.18f, 0.025f), new Color(0.14f, 0.15f, 0.18f), leftMonObj.transform);
 
-        // Articulated Mounting Bracket connecting to desk riser
         CreateBox("Left Mount Arm Upper", new Vector3(0.12f, -0.38f, 0.08f), new Vector3(0.05f, 0.16f, 0.08f), new Color(0.18f, 0.20f, 0.23f), leftMonObj.transform);
         CreateBox("Left Mount Arm Lower", new Vector3(0.18f, -0.48f, 0.12f), new Vector3(0.06f, 0.18f, 0.08f), new Color(0.18f, 0.20f, 0.23f), leftMonObj.transform);
 
-        // Status LED
-        GameObject leftLed = CreateBox("Left Telemetry LED", new Vector3(0.31f, -0.405f, -0.027f), new Vector3(0.015f, 0.015f, 0.005f), new Color(0.2f, 0.95f, 0.6f), leftMonObj.transform);
-        Renderer leftLedRend = leftLed.GetComponent<Renderer>();
-        Material leftLedMat = Application.isPlaying ? leftLedRend.material : leftLedRend.sharedMaterial;
-        if (leftLedMat != null && leftLedMat.HasProperty("_EmissionColor"))
-        {
-            leftLedMat.EnableKeyword("_EMISSION");
-            leftLedMat.SetColor("_EmissionColor", new Color(0.2f, 0.95f, 0.6f) * 1.5f);
-        }
+        CreateBox("Left Monitor Titlebar", new Vector3(0f, 0.365f, -0.028f), new Vector3(0.68f, 0.05f, 0.004f), headerBarColor, leftMonObj.transform, false);
+        CreateBox("Left Titlebar Divider", new Vector3(0f, 0.338f, -0.029f), new Vector3(0.68f, 0.003f, 0.004f), dividerColor, leftMonObj.transform, false);
+        CreateBox("Left Telemetry Card", new Vector3(0f, -0.02f, -0.027f), new Vector3(0.66f, 0.68f, 0.003f), cardSurfaceColor, leftMonObj.transform, false);
+        CreateLabel("Left Title Text", "SESSION METRICS & GAZE TELEMETRY", new Vector3(-0.31f, 0.368f, -0.032f), 20, 0.0090f, headerTextColor, TextAnchor.MiddleLeft, leftMonObj.transform);
+        telemetryHudText = CreateLabel("Telemetry HUD Text", "INITIALIZING...", new Vector3(-0.31f, 0.30f, -0.032f), 20, 0.0092f, new Color(0.84f, 0.88f, 0.92f), TextAnchor.UpperLeft, leftMonObj.transform);
 
-        CreateBox("Left Monitor Titlebar", new Vector3(0f, 0.365f, -0.028f), new Vector3(0.68f, 0.05f, 0.005f), new Color(0.08f, 0.22f, 0.18f), leftMonObj.transform, false);
-        CreateBox("Left Titlebar Accent", new Vector3(0f, 0.338f, -0.029f), new Vector3(0.68f, 0.004f, 0.005f), new Color(0.20f, 0.95f, 0.70f), leftMonObj.transform, false);
-        CreateBox("Left Telemetry Card", new Vector3(0f, -0.02f, -0.027f), new Vector3(0.66f, 0.68f, 0.003f), new Color(0.05f, 0.08f, 0.12f), leftMonObj.transform, false);
-        CreateLabel("Left Title Text", "OPERATIONAL TELEMETRY & SCORE", new Vector3(-0.32f, 0.368f, -0.032f), 22, 0.0095f, new Color(0.25f, 0.95f, 0.75f), TextAnchor.MiddleLeft, leftMonObj.transform);
-        telemetryHudText = CreateLabel("Telemetry HUD Text", "INITIALIZING...", new Vector3(-0.31f, 0.30f, -0.032f), 21, 0.0096f, new Color(0.88f, 0.94f, 0.98f), TextAnchor.UpperLeft, leftMonObj.transform);
-
-        // 3. RIGHT FORENSICS & URGENCY MONITOR (Repositioned to X=+1.12m to eliminate bezel overlap/intersection)
+        // 3. RIGHT FORENSICS & HEADER INSPECTOR MONITOR (X=+1.12m)
         GameObject rightMonObj = new GameObject("Right Forensics Monitor");
         rightMonObj.transform.SetParent(officeContent, false);
         rightMonObj.transform.localPosition = new Vector3(1.12f, 1.34f, 1.06f);
         rightMonObj.transform.localRotation = Quaternion.Euler(0f, 28f, 0f);
 
-        CreateBox("Right Monitor Bezel", Vector3.zero, new Vector3(0.74f, 0.84f, 0.05f), new Color(0.08f, 0.09f, 0.11f), rightMonObj.transform);
-        CreateBox("Right Monitor Screen", new Vector3(0f, 0f, -0.026f), new Vector3(0.70f, 0.80f, 0.005f), new Color(0.04f, 0.05f, 0.07f), rightMonObj.transform);
-
-        // Solid Opaque Backplate Casing (Requirement 3)
-        CreateBox("Right Monitor Back Casing", new Vector3(0f, 0f, 0.045f), new Vector3(0.76f, 0.86f, 0.08f), new Color(0.06f, 0.07f, 0.08f), rightMonObj.transform);
+        CreateBox("Right Monitor Bezel", Vector3.zero, new Vector3(0.74f, 0.84f, 0.05f), bezelColor, rightMonObj.transform);
+        CreateBox("Right Monitor Screen", new Vector3(0f, 0f, -0.026f), new Vector3(0.70f, 0.80f, 0.005f), screenBgColor, rightMonObj.transform);
+        CreateBox("Right Monitor Back Casing", new Vector3(0f, 0f, 0.045f), new Vector3(0.76f, 0.86f, 0.08f), new Color(0.07f, 0.08f, 0.09f), rightMonObj.transform);
         CreateBox("Right VESA Plate", new Vector3(0f, 0f, 0.090f), new Vector3(0.18f, 0.18f, 0.025f), new Color(0.14f, 0.15f, 0.18f), rightMonObj.transform);
 
-        // Articulated Mounting Bracket connecting to desk riser
         CreateBox("Right Mount Arm Upper", new Vector3(-0.12f, -0.38f, 0.08f), new Vector3(0.05f, 0.16f, 0.08f), new Color(0.18f, 0.20f, 0.23f), rightMonObj.transform);
         CreateBox("Right Mount Arm Lower", new Vector3(-0.18f, -0.48f, 0.12f), new Vector3(0.06f, 0.18f, 0.08f), new Color(0.18f, 0.20f, 0.23f), rightMonObj.transform);
 
-        // Status LED
-        GameObject rightLed = CreateBox("Right Threat LED", new Vector3(0.31f, -0.405f, -0.027f), new Vector3(0.015f, 0.015f, 0.005f), new Color(1f, 0.4f, 0.3f), rightMonObj.transform);
-        Renderer rightLedRend = rightLed.GetComponent<Renderer>();
-        Material rightLedMat = Application.isPlaying ? rightLedRend.material : rightLedRend.sharedMaterial;
-        if (rightLedMat != null && rightLedMat.HasProperty("_EmissionColor"))
-        {
-            rightLedMat.EnableKeyword("_EMISSION");
-            rightLedMat.SetColor("_EmissionColor", new Color(1f, 0.4f, 0.3f) * 1.5f);
-        }
+        CreateBox("Right Monitor Titlebar", new Vector3(0f, 0.365f, -0.028f), new Vector3(0.68f, 0.05f, 0.004f), headerBarColor, rightMonObj.transform, false);
+        CreateBox("Right Titlebar Divider", new Vector3(0f, 0.338f, -0.029f), new Vector3(0.68f, 0.003f, 0.004f), dividerColor, rightMonObj.transform, false);
+        CreateBox("Right Forensics Card", new Vector3(0f, -0.07f, -0.027f), new Vector3(0.66f, 0.56f, 0.003f), cardSurfaceColor, rightMonObj.transform, false);
+        CreateLabel("Right Title Text", "HEADER & DNS FORENSIC INSPECTOR", new Vector3(-0.31f, 0.368f, -0.032f), 20, 0.0090f, headerTextColor, TextAnchor.MiddleLeft, rightMonObj.transform);
 
-        CreateBox("Right Monitor Titlebar", new Vector3(0f, 0.365f, -0.028f), new Vector3(0.68f, 0.05f, 0.005f), new Color(0.24f, 0.12f, 0.12f), rightMonObj.transform, false);
-        CreateBox("Right Titlebar Accent", new Vector3(0f, 0.338f, -0.029f), new Vector3(0.68f, 0.004f, 0.005f), new Color(1.0f, 0.40f, 0.30f), rightMonObj.transform, false);
-        CreateBox("Right Forensics Card", new Vector3(0f, -0.08f, -0.027f), new Vector3(0.66f, 0.54f, 0.003f), new Color(0.06f, 0.07f, 0.10f), rightMonObj.transform, false);
-        CreateLabel("Right Title Text", "URGENCY TIMER & FORENSICS", new Vector3(-0.32f, 0.368f, -0.032f), 22, 0.0095f, new Color(1f, 0.45f, 0.35f), TextAnchor.MiddleLeft, rightMonObj.transform);
-
-        // Timer background & progress bar (strictly contained inside Timer BG at X=0, width=0.62m)
-        CreateBox("Timer BG", new Vector3(0f, 0.29f, -0.028f), new Vector3(0.64f, 0.034f, 0.004f), new Color(0.10f, 0.12f, 0.15f), rightMonObj.transform, false);
-        GameObject timerBarObj = CreateBox("Timer Bar", new Vector3(0f, 0.29f, -0.031f), new Vector3(0.62f, 0.024f, 0.004f), new Color(0.1f, 0.85f, 0.95f), rightMonObj.transform, false);
+        // Timer background & progress bar (strictly contained inside Timer BG at X=0, width=0.62m, calm matte slate blue)
+        CreateBox("Timer BG", new Vector3(0f, 0.29f, -0.028f), new Vector3(0.64f, 0.030f, 0.004f), new Color(0.09f, 0.11f, 0.14f), rightMonObj.transform, false);
+        GameObject timerBarObj = CreateBox("Timer Bar", new Vector3(0f, 0.29f, -0.031f), new Vector3(0.62f, 0.020f, 0.004f), new Color(0.38f, 0.62f, 0.85f), rightMonObj.transform, false);
         timerProgressBar = timerBarObj.transform;
 
-        timerHudText = CreateLabel("Timer Text", "TIME PRESSURE: 05:00", new Vector3(-0.31f, 0.245f, -0.032f), 21, 0.0095f, new Color(0.3f, 0.85f, 1f), TextAnchor.MiddleLeft, rightMonObj.transform);
-        forensicsHudText = CreateLabel("Forensics Text", "ANALYSIS STANDBY...", new Vector3(-0.31f, 0.19f, -0.032f), 20, 0.0092f, new Color(0.88f, 0.92f, 0.96f), TextAnchor.UpperLeft, rightMonObj.transform);
+        timerHudText = CreateLabel("Timer Text", "RESPONSE WINDOW: 05:00", new Vector3(-0.31f, 0.245f, -0.032f), 19, 0.0088f, subHeaderColor, TextAnchor.MiddleLeft, rightMonObj.transform);
+        forensicsHudText = CreateLabel("Forensics Text", "INSPECTING HEADERS...", new Vector3(-0.31f, 0.195f, -0.032f), 18, 0.0084f, new Color(0.84f, 0.88f, 0.92f), TextAnchor.UpperLeft, rightMonObj.transform);
     }
 
     // =========================================================================
@@ -831,7 +811,7 @@ public sealed class PhishingSimulationController : MonoBehaviour
         kRec = Input.GetKeyDown(KeyCode.R) || Input.GetKeyDown(KeyCode.C);
         kSit = Input.GetKeyDown(KeyCode.K);
 #endif
-        if (kSit)
+        if (kSit || OVRInput.GetDown(OVRInput.Button.One, OVRInput.Controller.LTouch) || OVRInput.GetDown(OVRInput.Button.Three, OVRInput.Controller.RTouch))
         {
             ToggleSitInChair();
         }
@@ -860,8 +840,8 @@ public sealed class PhishingSimulationController : MonoBehaviour
         if (enforcer == null)
         {
             enforcer = gameObject.AddComponent<WorkstationBoundaryEnforcer>();
-            enforcer.Configure(headAnchor, headAnchor != null ? headAnchor.parent : null, transform.parent);
         }
+        enforcer.Configure(headAnchor, headAnchor != null ? headAnchor.parent : null, transform.parent);
 
         bool nextSeated = !enforcer.IsSeatedLocked;
         Vector3 seatedEyeTarget = new Vector3(0f, 1.18f, 0.22f);
@@ -870,9 +850,9 @@ public sealed class PhishingSimulationController : MonoBehaviour
         // Align rig forward facing directly towards the center monitor when sitting down
         if (nextSeated && headAnchor != null)
         {
-            Transform rigRoot = headAnchor.parent != null && headAnchor.parent.parent != null
-                ? headAnchor.parent.parent
-                : (headAnchor.parent != null ? headAnchor.parent : headAnchor);
+            Transform rigRoot = transform.parent != null
+                ? transform.parent
+                : (headAnchor.parent != null && headAnchor.parent.parent != null ? headAnchor.parent.parent : headAnchor);
             Vector3 headEuler = headAnchor.eulerAngles;
             rigRoot.rotation = Quaternion.Euler(0f, -headEuler.y, 0f);
             enforcer.SetSeatedLocked(true, seatedEyeTarget);
@@ -911,7 +891,9 @@ public sealed class PhishingSimulationController : MonoBehaviour
                 float currentWidth = Mathf.Max(0.001f, fullWidth * ratio);
                 timerProgressBar.localScale = new Vector3(currentWidth, 0.024f, 0.004f);
                 timerProgressBar.localPosition = new Vector3(-fullWidth * 0.5f + currentWidth * 0.5f, 0.29f, -0.031f);
-                Color barColor = ratio > 0.4f ? Color.Lerp(new Color(1f, 0.7f, 0.1f), new Color(0.1f, 0.85f, 0.95f), (ratio - 0.4f) / 0.6f) : Color.Lerp(new Color(0.95f, 0.15f, 0.15f), new Color(1f, 0.7f, 0.1f), ratio / 0.4f);
+                Color barColor = ratio > 0.4f
+                    ? Color.Lerp(new Color(0.82f, 0.64f, 0.32f), new Color(0.38f, 0.62f, 0.85f), (ratio - 0.4f) / 0.6f)
+                    : Color.Lerp(new Color(0.82f, 0.35f, 0.35f), new Color(0.82f, 0.64f, 0.32f), ratio / 0.4f);
                 SetRendererColor(timerProgressBar.GetComponent<Renderer>(), barColor);
             }
         }
@@ -949,6 +931,7 @@ public sealed class PhishingSimulationController : MonoBehaviour
         PhishingActionButton nextHovered = null;
         bool nextHyperlinkHover = false;
         bool nextAlarmHover = false;
+        bool nextChairHover = false;
         Vector3 hitPoint = ray.GetPoint(3f);
 
         RaycastHit closestHit = default;
@@ -988,6 +971,10 @@ public sealed class PhishingSimulationController : MonoBehaviour
                 if (decisionButtonsAvailable)
                     nextAlarmHover = true;
             }
+            else if (officeChairTarget != null && (closestHit.transform == officeChairTarget || closestHit.transform.IsChildOf(officeChairTarget)))
+            {
+                nextChairHover = true;
+            }
         }
 
         // Hover state updates
@@ -1005,9 +992,10 @@ public sealed class PhishingSimulationController : MonoBehaviour
 
         hoveredHyperlink = nextHyperlinkHover;
         hoveredAlarmLever = nextAlarmHover;
+        hoveredOfficeChair = nextChairHover;
 
-        bool isAnyInteractive = hoveredButton != null || hoveredHyperlink || hoveredAlarmLever;
-        Color pointerColor = isAnyInteractive ? new Color(0.2f, 0.95f, 0.45f) : new Color(0.25f, 0.85f, 1f);
+        bool isAnyInteractive = hoveredButton != null || hoveredHyperlink || hoveredAlarmLever || hoveredOfficeChair;
+        Color pointerColor = isAnyInteractive ? new Color(0.35f, 0.82f, 0.55f) : new Color(0.55f, 0.72f, 0.88f);
 
         if (pointerLine != null)
         {
@@ -1058,6 +1046,11 @@ public sealed class PhishingSimulationController : MonoBehaviour
                     PhishingAudioManager.Instance.PlayThreatAlarm();
                 Activate(PhishingSimulationAction.ReportPhishing);
             }
+            else if (hoveredOfficeChair)
+            {
+                TriggerHapticPulse(0.5f, 0.10f);
+                ToggleSitInChair();
+            }
         }
     }
 
@@ -1083,15 +1076,15 @@ public sealed class PhishingSimulationController : MonoBehaviour
 
         senderText.text = WrapText($"From: {scenario.displayName} <{scenario.senderAddress}>", 78, false);
 
-        string sslLock = scenario.hasDomainAnomaly ? "[ ⚠ EXTERNAL / SENDER DOMAIN MISMATCH ]" : "[ 🔒 VERIFIED DOMAIN MATCH ]";
-        string attachmentTag = string.IsNullOrEmpty(scenario.attachmentName) ? "" : $"  |  [ 📎 {scenario.attachmentName} ]";
-        securityBadgeText.text = $"{sslLock}{attachmentTag}";
-        securityBadgeText.color = scenario.hasDomainAnomaly ? new Color(1f, 0.4f, 0.3f) : new Color(0.2f, 0.95f, 0.5f);
+        string attachmentTag = string.IsNullOrEmpty(scenario.attachmentName) ? "None" : scenario.attachmentName;
+        securityBadgeText.text = $"To: student@university.edu   |   TLS 1.3 Encrypted   |   Attachment: {attachmentTag}";
+        securityBadgeText.color = new Color(0.68f, 0.74f, 0.82f);
 
         subjectText.text = WrapText($"Subject: {scenario.subjectLine}", 78, false);
         bodyText.text = WrapText(scenario.emailBody, 82, true);
-        linkText.text = WrapText($"[ 🔗 LINK ]: {scenario.rawHyperlinkUrl}", 78, false);
-        feedbackText.text = "Aim controller beam and squeeze trigger to select action, or pull red desk alarm.";
+        linkText.text = WrapText($"[ LINK ]: {scenario.rawHyperlinkUrl}", 78, false);
+        feedbackText.text = "Inspect the Right Monitor's SMTP Header & URL Telemetry to verify sender authenticity before acting.";
+        feedbackText.color = new Color(0.66f, 0.72f, 0.80f);
 
         LayoutEmailElements();
 
@@ -1103,10 +1096,44 @@ public sealed class PhishingSimulationController : MonoBehaviour
 
         UpdateTelemetryDisplay(index, total);
 
-        forensicsHudText.text = $"THREAT CONTEXT:\n{WrapText(scenario.context, 40, false)}\n\nBIAS CUE INDUCTION:\n{scenario.biasType} ({scenario.difficulty})";
+        string senderDomain = ExtractDomainFromAddress(scenario.senderAddress);
+        string linkHost = ExtractHostFromUrl(scenario.rawHyperlinkUrl);
+        string returnPath = scenario.hasDomainAnomaly ? $"bounce-relay@{senderDomain}" : scenario.senderAddress;
+        string spfStatus = string.Equals(senderDomain, scenario.displayDomain, StringComparison.OrdinalIgnoreCase)
+            ? "PASS (aligned)"
+            : $"SOFTFAIL (sender {senderDomain} != {scenario.displayDomain})";
+
+        forensicsHudText.text =
+            $"SMTP HEADER TELEMETRY:\n" +
+            $"Claimed Org:  {scenario.displayDomain}\n" +
+            $"From Domain:  {senderDomain}\n" +
+            $"Return-Path:  <{returnPath}>\n" +
+            $"SPF / DKIM:   {spfStatus}\n" +
+            $"--------------------------------\n" +
+            $"HYPERLINK INSPECTION:\n" +
+            $"Target Host:  {linkHost}\n" +
+            $"Full URI:     {WrapText(scenario.rawHyperlinkUrl, 34, false)}\n" +
+            $"Attachment:   {attachmentTag}";
 
         SetDecisionButtonsAvailable(true);
         SetContinueAvailable(false);
+    }
+
+    private static string ExtractDomainFromAddress(string address)
+    {
+        if (string.IsNullOrEmpty(address))
+            return "unknown";
+        int atIndex = address.IndexOf('@');
+        return atIndex >= 0 && atIndex < address.Length - 1 ? address.Substring(atIndex + 1).Trim() : address;
+    }
+
+    private static string ExtractHostFromUrl(string url)
+    {
+        if (string.IsNullOrEmpty(url))
+            return "none";
+        if (Uri.TryCreate(url, UriKind.Absolute, out Uri parsed))
+            return parsed.Host;
+        return url;
     }
 
     public void ShowDecisionOutcome(

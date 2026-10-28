@@ -4,9 +4,10 @@ namespace IVRAR.CybersecurityVR
 {
     /// <summary>
     /// Enforces physical room-scale boundaries for the VR cybersecurity workstation.
-    /// Prevents player camera / XR rig from clipping or walking through desks,
-    /// triple-monitor displays, and office room walls.
+    /// Hooks into Application.onBeforeRender and Camera.onPreCull (after OVR/OpenXR tracking updates)
+    /// so the player camera can NEVER physically exit the 4 walls or see the grey exterior void!
     /// </summary>
+    [DefaultExecutionOrder(32000)]
     public class WorkstationBoundaryEnforcer : MonoBehaviour
     {
         [Header("Tracking References")]
@@ -22,11 +23,25 @@ namespace IVRAR.CybersecurityVR
         [SerializeField] private float minY = 0.5f;
         [SerializeField] private float maxY = 2.2f;
 
-        [Header("Stay In Room Boundaries (Office Cabin Room Size 7.2m x 6.4m)")]
-        [SerializeField] private float roomMinX = -3.2f;
-        [SerializeField] private float roomMaxX = 3.2f;
-        [SerializeField] private float roomMinZ = -1.0f;
-        [SerializeField] private float roomMaxZ = 4.6f;
+        [Header("Hard Interior Wall Boundaries (Office Room: X [-3.5, 3.5], Y [0, 3.4], Z [-1.3, 4.9])")]
+        [SerializeField] private float roomMinX = -3.15f;
+        [SerializeField] private float roomMaxX = 3.15f;
+        [SerializeField] private float roomMinY = 0.55f;
+        [SerializeField] private float roomMaxY = 2.95f;
+        [SerializeField] private float roomMinZ = -0.95f;
+        [SerializeField] private float roomMaxZ = 4.55f;
+
+        private void OnEnable()
+        {
+            Application.onBeforeRender += EnforceBoundariesBeforeRender;
+            Camera.onPreCull += OnCameraPreCull;
+        }
+
+        private void OnDisable()
+        {
+            Application.onBeforeRender -= EnforceBoundariesBeforeRender;
+            Camera.onPreCull -= OnCameraPreCull;
+        }
 
         private void Start()
         {
@@ -102,18 +117,25 @@ namespace IVRAR.CybersecurityVR
         {
             isSeatedLocked = locked;
             seatedEyeTarget = eyeTarget;
-            if (headCamera == null)
-                ResolveReferences();
-
-            if (locked && headCamera != null)
-            {
-                Transform rig = rigRoot != null ? rigRoot : transform;
-                Vector3 headPos = headCamera.position;
-                rig.position += (seatedEyeTarget - headPos);
-            }
+            EnforceRoomAndSeatConstraints();
         }
 
         private void LateUpdate()
+        {
+            EnforceRoomAndSeatConstraints();
+        }
+
+        private void EnforceBoundariesBeforeRender()
+        {
+            EnforceRoomAndSeatConstraints();
+        }
+
+        private void OnCameraPreCull(Camera cam)
+        {
+            EnforceRoomAndSeatConstraints();
+        }
+
+        private void EnforceRoomAndSeatConstraints()
         {
             if (headCamera == null)
             {
@@ -121,33 +143,52 @@ namespace IVRAR.CybersecurityVR
                 if (headCamera == null) return;
             }
 
-            Transform rig = rigRoot != null ? rigRoot : transform;
+            Transform rig = (rigRoot != null && rigRoot != transform)
+                ? rigRoot
+                : (transform.parent != null ? transform.parent : transform);
             Vector3 headPos = headCamera.position;
 
-            // When seated in the chair ('K' toggle), lock body translation to the chair while allowing full 360° head/eye rotation!
+            // 1. When seated in the chair ('K' toggle), lock body translation to the chair while allowing full 360° head/eye rotation!
             if (isSeatedLocked)
             {
                 Vector3 lockDelta = seatedEyeTarget - headPos;
-                rig.position += lockDelta;
+                if (lockDelta.sqrMagnitude > 0.000001f)
+                {
+                    rig.position += lockDelta;
+                }
                 return;
             }
 
-            // Prevent player from clipping out of the room or walking far away in VR/simulator.
-            // If the head position leaves the room interior boundaries, clamp the rig back inside.
-            float clampedX = Mathf.Clamp(headPos.x, roomMinX, roomMaxX);
-            float clampedZ = Mathf.Clamp(headPos.z, roomMinZ, roomMaxZ);
+            // 2. Hard interior wall/floor/ceiling clamp: NEVER allow the player camera to cross the 4 walls, floor, or ceiling!
+            const float HardMinX = -3.15f;
+            const float HardMaxX = 3.15f;
+            const float HardMinY = 0.55f;
+            const float HardMaxY = 2.95f;
+            const float HardMinZ = -0.95f;
+            const float HardMaxZ = 4.55f;
 
-            if (!Mathf.Approximately(clampedX, headPos.x) || !Mathf.Approximately(clampedZ, headPos.z))
+            float clampedX = Mathf.Clamp(headPos.x, HardMinX, HardMaxX);
+            float clampedY = Mathf.Clamp(headPos.y, HardMinY, HardMaxY);
+            float clampedZ = Mathf.Clamp(headPos.z, HardMinZ, HardMaxZ);
+
+            // Also prevent walking inside the solid executive desk footprint (X in [-1.15, 1.15], Z in [0.52, 1.55])
+            if (clampedZ > 0.52f && clampedZ < 1.55f && clampedX > -1.15f && clampedX < 1.15f)
             {
-                Vector3 correction = new Vector3(clampedX - headPos.x, 0f, clampedZ - headPos.z);
-                rig.position += correction;
+                float dFront = Mathf.Abs(clampedZ - 0.52f);
+                float dBack = Mathf.Abs(1.55f - clampedZ);
+                float dLeft = Mathf.Abs(clampedX - (-1.15f));
+                float dRight = Mathf.Abs(1.15f - clampedX);
+                float minD = Mathf.Min(Mathf.Min(dFront, dBack), Mathf.Min(dLeft, dRight));
+                if (minD == dFront) clampedZ = 0.52f;
+                else if (minD == dBack) clampedZ = 1.55f;
+                else if (minD == dLeft) clampedX = -1.15f;
+                else clampedX = 1.15f;
             }
 
-            // In VR simulator / seated testing: keep user seated in front of workstation if drastically displaced (> 4.5m)
-            if (Vector3.Distance(new Vector3(headPos.x, 0f, headPos.z), new Vector3(0f, 0f, 0.22f)) > 4.5f)
+            Vector3 correction = new Vector3(clampedX - headPos.x, clampedY - headPos.y, clampedZ - headPos.z);
+            if (correction.sqrMagnitude > 0.000001f)
             {
-                Vector3 recenterCorrection = new Vector3(0f - headPos.x, 0f, 0.22f - headPos.z);
-                rig.position += recenterCorrection;
+                rig.position += correction;
             }
         }
     }

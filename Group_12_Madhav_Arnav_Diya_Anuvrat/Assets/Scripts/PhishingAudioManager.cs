@@ -64,14 +64,15 @@ namespace IVRAR.CybersecurityVR
             AudioListener.volume = 1.0f;
             AudioListener.pause = false;
 
-            if (buttonClickClip == null)
-                buttonClickClip = Resources.Load<AudioClip>("Audio/button_click");
-            if (threatAlarmClip == null)
-                threatAlarmClip = Resources.Load<AudioClip>("Audio/threat_alarm");
-            if (safeChimeClip == null)
-                safeChimeClip = Resources.Load<AudioClip>("Audio/safe_chime");
-            if (ambientHumClip == null)
-                ambientHumClip = Resources.Load<AudioClip>("Audio/ambient_office_hum");
+            // Load fresh high-gain audio clips from Resources/Audio so serialized old references never override updated clips
+            AudioClip resClick = Resources.Load<AudioClip>("Audio/button_click");
+            if (resClick != null) buttonClickClip = resClick;
+            AudioClip resAlarm = Resources.Load<AudioClip>("Audio/threat_alarm");
+            if (resAlarm != null) threatAlarmClip = resAlarm;
+            AudioClip resChime = Resources.Load<AudioClip>("Audio/safe_chime");
+            if (resChime != null) safeChimeClip = resChime;
+            AudioClip resAmbient = Resources.Load<AudioClip>("Audio/ambient_office_hum");
+            if (resAmbient != null) ambientHumClip = resAmbient;
 
             // Ensure audio data is loaded into memory even if preloadAudioData was false in .meta
             if (buttonClickClip != null && buttonClickClip.loadState != AudioDataLoadState.Loaded)
@@ -105,7 +106,9 @@ namespace IVRAR.CybersecurityVR
             if (chimeSource == null)
                 chimeSource = CreateAudioSource("Chime AudioSource", new Vector3(0f, 1.34f, 1.15f), false, 1.0f);
             if (ambientSource == null)
-                ambientSource = CreateAudioSource("Ambient AudioSource", new Vector3(0f, 1.5f, 1.5f), true, 0.55f);
+                ambientSource = CreateAudioSource("Ambient AudioSource", new Vector3(0f, 1.5f, 1.5f), true, 0.72f);
+            else
+                ambientSource.volume = 0.72f;
         }
 
         private void EnsureAudioListener()
@@ -151,8 +154,8 @@ namespace IVRAR.CybersecurityVR
             {
                 if (worldPosition.HasValue)
                     sfxSource.transform.position = worldPosition.Value;
-                sfxSource.pitch = UnityEngine.Random.Range(0.96f, 1.04f);
-                sfxSource.PlayOneShot(buttonClickClip, 1.0f);
+                sfxSource.pitch = UnityEngine.Random.Range(0.97f, 1.03f);
+                sfxSource.PlayOneShot(buttonClickClip, 1.45f);
             }
         }
 
@@ -164,7 +167,7 @@ namespace IVRAR.CybersecurityVR
                 if (worldPosition.HasValue)
                     alarmSource.transform.position = worldPosition.Value;
                 alarmSource.pitch = 1.0f;
-                alarmSource.PlayOneShot(threatAlarmClip, 1.0f);
+                alarmSource.PlayOneShot(threatAlarmClip, 1.50f);
             }
         }
 
@@ -176,7 +179,7 @@ namespace IVRAR.CybersecurityVR
                 if (worldPosition.HasValue)
                     chimeSource.transform.position = worldPosition.Value;
                 chimeSource.pitch = 1.0f;
-                chimeSource.PlayOneShot(safeChimeClip, 1.0f);
+                chimeSource.PlayOneShot(safeChimeClip, 1.45f);
             }
         }
 
