@@ -241,8 +241,8 @@ public sealed class PhishingSimulationController : MonoBehaviour
         CreateBox("Accent Panel Left", new Vector3(-3.48f, 1.8f, 1.8f), new Vector3(0.04f, 2.2f, 3.6f), new Color(0.85f, 0.87f, 0.90f), officeContent);
         CreateBox("Accent Panel Right", new Vector3(3.48f, 1.8f, 1.8f), new Vector3(0.04f, 2.2f, 3.6f), new Color(0.85f, 0.87f, 0.90f), officeContent);
 
-        // Office Props: Whiteboard on Left Wall with security analysis notes
-        CreateWhiteboard(new Vector3(-3.46f, 1.75f, 1.8f), Quaternion.Euler(0f, 90f, 0f));
+    // Office Props: Whiteboard moved safely rightwards to Z=2.85m to ensure zero collision or overlap with bookshelf
+    CreateWhiteboard(new Vector3(-3.46f, 1.75f, 2.85f), Quaternion.Euler(0f, 90f, 0f));
 
         // Office Props: Executive Bookshelf & Storage Cabinet against Back Wall
         CreateBookshelf(new Vector3(-2.2f, 1.15f, 4.65f));
@@ -293,12 +293,12 @@ public sealed class PhishingSimulationController : MonoBehaviour
         boardRoot.localPosition = pos;
         boardRoot.localRotation = rotation;
 
-        // Aluminum frame
-        CreateBox("Whiteboard Frame", Vector3.zero, new Vector3(2.4f, 1.3f, 0.04f), new Color(0.72f, 0.74f, 0.76f), boardRoot);
+        // Aluminum frame - Colliders disabled so there is no physical mesh collision
+        CreateBox("Whiteboard Frame", Vector3.zero, new Vector3(2.4f, 1.3f, 0.04f), new Color(0.72f, 0.74f, 0.76f), boardRoot, false);
         // Glossy dry-erase surface
-        CreateBox("Whiteboard Surface", new Vector3(0f, 0f, -0.015f), new Vector3(2.32f, 1.22f, 0.015f), new Color(0.98f, 0.98f, 0.99f), boardRoot);
+        CreateBox("Whiteboard Surface", new Vector3(0f, 0f, -0.015f), new Vector3(2.32f, 1.22f, 0.015f), new Color(0.98f, 0.98f, 0.99f), boardRoot, false);
         // Marker tray
-        CreateBox("Marker Tray", new Vector3(0f, -0.66f, -0.04f), new Vector3(1.8f, 0.03f, 0.08f), new Color(0.55f, 0.57f, 0.60f), boardRoot);
+        CreateBox("Marker Tray", new Vector3(0f, -0.66f, -0.04f), new Vector3(1.8f, 0.03f, 0.08f), new Color(0.55f, 0.57f, 0.60f), boardRoot, false);
 
         // Whiteboard Header & Diagram Notes
         CreateLabel("WB Header", "INCIDENT RESPONSE WORKFLOW & THREAT INTEL", new Vector3(-1.08f, 0.52f, -0.03f), 22, 0.0095f, new Color(0.10f, 0.25f, 0.55f), TextAnchor.MiddleLeft, boardRoot);
@@ -391,12 +391,12 @@ public sealed class PhishingSimulationController : MonoBehaviour
         posterRoot.SetParent(officeContent, false);
         posterRoot.localPosition = pos;
 
-        // Black picture frame
-        CreateBox("Frame", Vector3.zero, new Vector3(1.10f, 0.85f, 0.03f), new Color(0.12f, 0.13f, 0.15f), posterRoot);
+        // Black picture frame - Colliders disabled to eliminate camera collision
+        CreateBox("Frame", Vector3.zero, new Vector3(1.10f, 0.85f, 0.03f), new Color(0.12f, 0.13f, 0.15f), posterRoot, false);
         // Poster backing
-        CreateBox("Print", new Vector3(0f, 0f, -0.018f), new Vector3(1.02f, 0.77f, 0.01f), new Color(0.96f, 0.97f, 0.98f), posterRoot);
+        CreateBox("Print", new Vector3(0f, 0f, -0.018f), new Vector3(1.02f, 0.77f, 0.01f), new Color(0.96f, 0.97f, 0.98f), posterRoot, false);
         // Accent color stripe
-        CreateBox("Color Stripe", new Vector3(0f, 0.30f, -0.022f), new Vector3(1.02f, 0.08f, 0.005f), accentColor, posterRoot);
+        CreateBox("Color Stripe", new Vector3(0f, 0.30f, -0.022f), new Vector3(1.02f, 0.08f, 0.005f), accentColor, posterRoot, false);
 
         CreateLabel("Poster Text", text, new Vector3(0f, -0.05f, -0.025f), 22, 0.0095f, new Color(0.15f, 0.17f, 0.20f), TextAnchor.MiddleCenter, posterRoot);
     }
@@ -638,41 +638,44 @@ public sealed class PhishingSimulationController : MonoBehaviour
     }
 
     // =========================================================================
-    // Interactive Console Buttons & Ergonomics (Requirement 7: Front-and-Center, Elevated, High Contrast)
+    // Interactive Console Buttons & Ergonomics (Front-and-Center, Elevated, High Contrast)
     // =========================================================================
     private void BuildInteractiveConsole()
     {
-        // 1. Primary Decision Tier (Elevated prominent console bridge angled 26° for comfortable reach & direct sightline at Y=0.835m, Z=0.84m)
-        GameObject primaryConsoleBase = CreateBox("Decision Console Plate", new Vector3(0f, 0.835f, 0.84f), new Vector3(1.34f, 0.045f, 0.16f), new Color(0.18f, 0.20f, 0.24f), officeContent);
-        primaryConsoleBase.transform.localRotation = Quaternion.Euler(26f, 0f, 0f);
+        // Dedicated unscaled root container for console ergonomics (Z=0.86m, Y=0.79m, angled 22°)
+        // Critical: Must remain localScale = Vector3.one so child button geometry is never distorted or flattened!
+        GameObject consoleRoot = new GameObject("Tactile Console");
+        consoleRoot.transform.SetParent(officeContent, false);
+        consoleRoot.transform.localPosition = new Vector3(0f, 0.785f, 0.86f);
+        consoleRoot.transform.localRotation = Quaternion.Euler(22f, 0f, 0f);
+        consoleRoot.transform.localScale = Vector3.one;
 
-        // High-contrast, easily clickable vibrant color buttons
-        CreateBezeledButton("Click Link", PhishingSimulationAction.ClickLink, new Vector3(-0.44f, 0.035f, 0f), new Vector3(0.38f, 0.055f, 0.10f), new Color(0.16f, 0.52f, 0.92f), primaryConsoleBase.transform);
-        CreateBezeledButton("Report Phishing", PhishingSimulationAction.ReportPhishing, new Vector3(0f, 0.038f, 0f), new Vector3(0.40f, 0.060f, 0.11f), new Color(0.92f, 0.18f, 0.16f), primaryConsoleBase.transform);
-        CreateBezeledButton("Ignore / Safe", PhishingSimulationAction.Ignore, new Vector3(0.44f, 0.035f, 0f), new Vector3(0.38f, 0.055f, 0.10f), new Color(0.20f, 0.68f, 0.45f), primaryConsoleBase.transform);
+        // Unified Sleek Housing Base (fits comfortably on desk between keyboard and screens, width=0.96m, depth=0.28m, height=0.024m)
+        CreateBox("Console Base Housing", Vector3.zero, new Vector3(0.96f, 0.024f, 0.28f), new Color(0.12f, 0.13f, 0.16f), consoleRoot.transform);
 
-        // 2. Secondary Administrative Tier (Elevated pedestal deck at Y=0.865m, Z=0.97m angled 18°)
-        GameObject secondaryConsoleBase = CreateBox("Admin Console Plate", new Vector3(0f, 0.865f, 0.97f), new Vector3(1.08f, 0.035f, 0.12f), new Color(0.14f, 0.16f, 0.19f), officeContent);
-        secondaryConsoleBase.transform.localRotation = Quaternion.Euler(18f, 0f, 0f);
+        // 1. Primary Decision Tier (Row 1, closest to player at Z=-0.055m, elevated keycaps)
+        CreateBezeledButton("Click Link", PhishingSimulationAction.ClickLink, new Vector3(-0.31f, 0.025f, -0.055f), new Vector3(0.27f, 0.045f, 0.085f), new Color(0.14f, 0.50f, 0.95f), consoleRoot.transform);
+        CreateBezeledButton("Report Phishing", PhishingSimulationAction.ReportPhishing, new Vector3(0f, 0.027f, -0.055f), new Vector3(0.29f, 0.048f, 0.090f), new Color(0.92f, 0.18f, 0.16f), consoleRoot.transform);
+        CreateBezeledButton("Ignore / Safe", PhishingSimulationAction.Ignore, new Vector3(0.31f, 0.025f, -0.055f), new Vector3(0.27f, 0.045f, 0.085f), new Color(0.16f, 0.68f, 0.38f), consoleRoot.transform);
 
-        CreateBezeledButton("Continue", PhishingSimulationAction.Continue, new Vector3(-0.34f, 0.030f, 0f), new Vector3(0.28f, 0.045f, 0.075f), new Color(0.18f, 0.65f, 0.38f), secondaryConsoleBase.transform);
-        CreateBezeledButton("Shuffle Deck", PhishingSimulationAction.Shuffle, new Vector3(0f, 0.030f, 0f), new Vector3(0.28f, 0.045f, 0.075f), new Color(0.78f, 0.54f, 0.18f), secondaryConsoleBase.transform);
-        CreateBezeledButton("Restart", PhishingSimulationAction.Restart, new Vector3(0.34f, 0.030f, 0f), new Vector3(0.28f, 0.045f, 0.075f), new Color(0.45f, 0.48f, 0.54f), secondaryConsoleBase.transform);
+        // 2. Secondary Administrative Tier (Row 2, upper row at Z=+0.065m)
+        CreateBezeledButton("Continue", PhishingSimulationAction.Continue, new Vector3(-0.29f, 0.022f, 0.065f), new Vector3(0.25f, 0.038f, 0.065f), new Color(0.18f, 0.65f, 0.38f), consoleRoot.transform);
+        CreateBezeledButton("Shuffle Deck", PhishingSimulationAction.Shuffle, new Vector3(0f, 0.022f, 0.065f), new Vector3(0.25f, 0.038f, 0.065f), new Color(0.85f, 0.58f, 0.16f), consoleRoot.transform);
+        CreateBezeledButton("Restart", PhishingSimulationAction.Restart, new Vector3(0.29f, 0.022f, 0.065f), new Vector3(0.25f, 0.038f, 0.065f), new Color(0.42f, 0.46f, 0.55f), consoleRoot.transform);
     }
-
 
     private void CreateBezeledButton(string label, PhishingSimulationAction action, Vector3 localPosition, Vector3 scale, Color color, Transform parent)
     {
-        // 1. Recessed Bezel Base Well
-        GameObject bezel = CreateBox(label + " Bezel", localPosition + new Vector3(0f, -scale.y * 0.35f, 0f), new Vector3(scale.x + 0.025f, scale.y * 0.40f, scale.z + 0.025f), new Color(0.10f, 0.11f, 0.13f), parent);
+        // 1. Recessed Bezel Frame Well (anchored directly to console root)
+        GameObject bezel = CreateBox(label + " Bezel", localPosition + new Vector3(0f, -scale.y * 0.35f, 0f), new Vector3(scale.x + 0.016f, scale.y * 0.45f, scale.z + 0.016f), new Color(0.08f, 0.09f, 0.11f), parent);
 
-        // 2. Button Plunger Keycap
+        // 2. Button Plunger Keycap (sits prominently above bezel and housing)
         GameObject button = CreateBox(label + " Button", localPosition, scale, color, parent);
         PhishingActionButton actionButton = button.AddComponent<PhishingActionButton>();
         actionButton.Initialize(action, color);
 
-        // 3. Button Label (Rotated 90° on X and parented to Button plunger so press animations displace text synchronously!)
-        CreateLabel(label + " Label", label, new Vector3(0f, scale.y * 0.5f + 0.002f, 0f), 24, 0.0115f, Color.white, TextAnchor.MiddleCenter, button.transform, Quaternion.Euler(90f, 0f, 0f));
+        // 3. Button Label (Rotated 90° on X, positioned cleanly on top surface of plunger; cullBack=false to ensure visibility from above)
+        CreateLabel(label + " Label", label, new Vector3(0f, scale.y * 0.5f + 0.002f, 0f), 24, 0.0110f, Color.white, TextAnchor.MiddleCenter, button.transform, Quaternion.Euler(90f, 0f, 0f), false);
     }
 
     // =========================================================================
@@ -1173,13 +1176,22 @@ public sealed class PhishingSimulationController : MonoBehaviour
     // =========================================================================
     // Factory Helpers with Clean URP Materials & Textures
     // =========================================================================
-    private GameObject CreateBox(string objectName, Vector3 localPosition, Vector3 localScale, Color color, Transform parent)
+    private GameObject CreateBox(string objectName, Vector3 localPosition, Vector3 localScale, Color color, Transform parent, bool enableCollider = true)
     {
         GameObject box = GameObject.CreatePrimitive(PrimitiveType.Cube);
         box.name = objectName;
         box.transform.SetParent(parent, false);
         box.transform.localPosition = localPosition;
         box.transform.localScale = localScale;
+
+        if (!enableCollider)
+        {
+            Collider col = box.GetComponent<Collider>();
+            if (col != null)
+            {
+                DestroyImmediate(col);
+            }
+        }
 
         Shader shader = Shader.Find("Universal Render Pipeline/Lit");
         if (shader == null)
@@ -1238,7 +1250,8 @@ public sealed class PhishingSimulationController : MonoBehaviour
         Color color,
         TextAnchor anchor,
         Transform parent = null,
-        Quaternion? localRotation = null)
+        Quaternion? localRotation = null,
+        bool cullBack = true)
     {
         GameObject label = new GameObject(objectName);
         label.transform.SetParent(parent != null ? parent : officeContent, false);
@@ -1254,18 +1267,22 @@ public sealed class PhishingSimulationController : MonoBehaviour
         text.richText = false;
 
         // Requirement 3: Canvas/Mesh Backface Culling
-        // Apply 3D text shader with hardware backface culling (Cull Back) to eliminate reverse-side visibility
-        Shader cullShader = Shader.Find("GUI/3D Text Shader Cull Back");
-        MeshRenderer rend = label.GetComponent<MeshRenderer>();
-        if (cullShader != null && rend != null && text.font != null && text.font.material != null)
+        // Apply 3D text shader with hardware backface culling (Cull Back) only when requested (e.g. monitors)
+        // Buttons and flat horizontal elements keep Cull Off so they are reliably visible from all view angles.
+        if (cullBack)
         {
-            Material textMat = new Material(cullShader);
-            textMat.mainTexture = text.font.material.mainTexture;
-            textMat.color = color;
-            if (Application.isPlaying)
-                rend.material = textMat;
-            else
-                rend.sharedMaterial = textMat;
+            Shader cullShader = Shader.Find("GUI/3D Text Shader Cull Back");
+            MeshRenderer rend = label.GetComponent<MeshRenderer>();
+            if (cullShader != null && rend != null && text.font != null && text.font.material != null)
+            {
+                Material textMat = new Material(cullShader);
+                textMat.mainTexture = text.font.material.mainTexture;
+                textMat.color = color;
+                if (Application.isPlaying)
+                    rend.material = textMat;
+                else
+                    rend.sharedMaterial = textMat;
+            }
         }
 
         return text;
