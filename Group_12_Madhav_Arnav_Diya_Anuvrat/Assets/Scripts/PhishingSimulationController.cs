@@ -1296,12 +1296,12 @@ public sealed class PhishingSimulationController : MonoBehaviour
                 fixCount = acc.Fixations != null ? acc.Fixations.Count : 0;
                 if (acc.AoiMetrics != null)
                 {
-                    if (acc.AoiMetrics.TryGetValue(AOIType.SenderHeader.ToSnakeCaseId(), out var s))
-                        senderMs = s.rawSampleDwellTimeMs > 0 ? s.rawSampleDwellTimeMs : s.fixationDwellTimeMs;
-                    if (acc.AoiMetrics.TryGetValue(AOIType.HyperlinkTarget.ToSnakeCaseId(), out var l))
-                        linkMs = l.rawSampleDwellTimeMs > 0 ? l.rawSampleDwellTimeMs : l.fixationDwellTimeMs;
-                    if (acc.AoiMetrics.TryGetValue(AOIType.EmailBody.ToSnakeCaseId(), out var b))
-                        bodyMs = b.rawSampleDwellTimeMs > 0 ? b.rawSampleDwellTimeMs : b.fixationDwellTimeMs;
+                    if (acc.AoiMetrics.TryGetValue("sender_header", out var s))
+                        senderMs = s.rawSampleDwellMs > 0 ? s.rawSampleDwellMs : s.fixationDwellMs;
+                    if (acc.AoiMetrics.TryGetValue("hyperlink_target", out var l))
+                        linkMs = l.rawSampleDwellMs > 0 ? l.rawSampleDwellMs : l.fixationDwellMs;
+                    if (acc.AoiMetrics.TryGetValue("email_body", out var b))
+                        bodyMs = b.rawSampleDwellMs > 0 ? b.rawSampleDwellMs : b.fixationDwellMs;
                 }
                 double diag = senderMs + linkMs;
                 double tot = diag + bodyMs;
@@ -1311,10 +1311,10 @@ public sealed class PhishingSimulationController : MonoBehaviour
             {
                 var last = tracker.LastTrialSummary;
                 fixCount = last.totalFixationCount;
-                senderMs = last.senderHeaderDwellMs;
-                linkMs = last.hyperlinkTargetDwellMs;
-                bodyMs = last.emailBodyDwellMs;
-                tirPct = last.threatInspectionRatio * 100.0;
+                senderMs = last.tSenderHeaderMs;
+                linkMs = last.tHyperlinkTargetMs;
+                bodyMs = last.tEmailBodyMs;
+                tirPct = !float.IsNaN(last.rInspect) ? last.rInspect * 100.0 : 0.0;
             }
         }
 
