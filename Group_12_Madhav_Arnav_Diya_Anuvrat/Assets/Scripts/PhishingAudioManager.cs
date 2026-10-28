@@ -106,9 +106,9 @@ namespace IVRAR.CybersecurityVR
             if (chimeSource == null)
                 chimeSource = CreateAudioSource("Chime AudioSource", new Vector3(0f, 1.34f, 1.15f), false, 1.0f);
             if (ambientSource == null)
-                ambientSource = CreateAudioSource("Ambient AudioSource", new Vector3(0f, 1.5f, 1.5f), true, 0.38f);
+                ambientSource = CreateAudioSource("Ambient AudioSource", new Vector3(0f, 1.5f, 1.5f), true, 0.55f);
             else
-                ambientSource.volume = 0.38f;
+                ambientSource.volume = 0.55f;
         }
 
         private void EnsureAudioListener()

@@ -4,7 +4,8 @@ namespace IVRAR.CybersecurityVR
 {
     /// <summary>
     /// Enforces physical room-scale boundaries for the VR cybersecurity workstation.
-    /// Hooks into Application.onBeforeRender and Camera.onPreCull (after OVR/OpenXR tracking updates)
+    /// Moves TrackingSpace relative to the stationary room/rig so that moving the player camera
+    /// NEVER moves the room walls, and hooks into Application.onBeforeRender and Camera.onPreCull
     /// so the player camera can NEVER physically exit the 4 walls or see the grey exterior void!
     /// </summary>
     [DefaultExecutionOrder(32000)]
@@ -14,6 +15,7 @@ namespace IVRAR.CybersecurityVR
         [SerializeField] private Transform headCamera;
         [SerializeField] private Transform trackingSpace;
         [SerializeField] private Transform rigRoot;
+        [SerializeField] private Transform roomOrigin;
 
         [Header("Workstation Seated Volume Constraints (Meters)")]
         [SerializeField] private float minX = -1.8f;
@@ -24,12 +26,12 @@ namespace IVRAR.CybersecurityVR
         [SerializeField] private float maxY = 2.2f;
 
         [Header("Hard Interior Wall Boundaries (Office Room: X [-3.5, 3.5], Y [0, 3.4], Z [-1.3, 4.9])")]
-        [SerializeField] private float roomMinX = -3.15f;
-        [SerializeField] private float roomMaxX = 3.15f;
+        [SerializeField] private float roomMinX = -3.05f;
+        [SerializeField] private float roomMaxX = 3.05f;
         [SerializeField] private float roomMinY = 0.55f;
         [SerializeField] private float roomMaxY = 2.95f;
-        [SerializeField] private float roomMinZ = -0.95f;
-        [SerializeField] private float roomMaxZ = 4.55f;
+        [SerializeField] private float roomMinZ = -0.85f;
+        [SerializeField] private float roomMaxZ = 4.45f;
 
         private void OnEnable()
         {
@@ -54,11 +56,15 @@ namespace IVRAR.CybersecurityVR
             headCamera = head;
             trackingSpace = tracking;
             rigRoot = root;
+            roomOrigin = transform;
             SetupHeadCollider();
         }
 
         private void ResolveReferences()
         {
+            if (roomOrigin == null)
+                roomOrigin = transform;
+
             if (headCamera == null)
             {
                 GameObject head = GameObject.Find("CenterEyeAnchor");
@@ -103,7 +109,7 @@ namespace IVRAR.CybersecurityVR
         private Vector3 referenceRigPosition;
         private bool hasInitializedReference = false;
         private bool isSeatedLocked = false;
-        private Vector3 seatedEyeTarget = new Vector3(0f, 1.18f, 0.22f);
+        private Vector3 seatedEyeLocalTarget = new Vector3(0f, 1.18f, 0.22f);
 
         public bool IsSeatedLocked => isSeatedLocked;
 
@@ -113,10 +119,15 @@ namespace IVRAR.CybersecurityVR
             hasInitializedReference = true;
         }
 
-        public void SetSeatedLocked(bool locked, Vector3 eyeTarget)
+        public void SetSeatedLocked(bool locked, Vector3 eyeLocalTarget)
         {
             isSeatedLocked = locked;
-            seatedEyeTarget = eyeTarget;
+            seatedEyeLocalTarget = eyeLocalTarget;
+            EnforceRoomAndSeatConstraints();
+        }
+
+        private void Update()
+        {
             EnforceRoomAndSeatConstraints();
         }
 
@@ -137,39 +148,46 @@ namespace IVRAR.CybersecurityVR
 
         private void EnforceRoomAndSeatConstraints()
         {
-            if (headCamera == null)
+            if (headCamera == null || trackingSpace == null)
             {
                 ResolveReferences();
                 if (headCamera == null) return;
             }
 
-            Transform rig = (rigRoot != null && rigRoot != transform)
-                ? rigRoot
-                : (transform.parent != null ? transform.parent : transform);
-            Vector3 headPos = headCamera.position;
+            // IMPORTANT: Phishing Simulation (transform) is a sibling of TrackingSpace under [BuildingBlock] Camera Rig!
+            // Moving rigRoot would move BOTH the player AND the room walls together!
+            // Moving trackingSpace moves ONLY the player (eyes + hands) relative to the room!
+            Transform playerMover = trackingSpace != null ? trackingSpace : headCamera;
+            Transform room = roomOrigin != null ? roomOrigin : transform;
+
+            // Compute head position in the room's local space so wall coordinates are ALWAYS exact
+            Vector3 headLocal = room.InverseTransformPoint(headCamera.position);
 
             // 1. When seated in the chair ('K' toggle), lock body translation to the chair while allowing full 360° head/eye rotation!
             if (isSeatedLocked)
             {
-                Vector3 lockDelta = seatedEyeTarget - headPos;
-                if (lockDelta.sqrMagnitude > 0.000001f)
+                Vector3 localDelta = seatedEyeLocalTarget - headLocal;
+                if (localDelta.sqrMagnitude > 0.000001f)
                 {
-                    rig.position += lockDelta;
+                    Vector3 worldDelta = room.TransformVector(localDelta);
+                    playerMover.position += worldDelta;
                 }
                 return;
             }
 
-            // 2. Hard interior wall/floor/ceiling clamp: NEVER allow the player camera to cross the 4 walls, floor, or ceiling!
-            const float HardMinX = -3.15f;
-            const float HardMaxX = 3.15f;
+            // 2. Hard interior wall/floor/ceiling clamp in room local coordinates:
+            // Walls are at X: [-3.55, 3.55], Y: [0, 3.4], Z: [-1.35, 4.95].
+            // Keep player's head strictly inside with a 0.45m safety margin from every wall!
+            const float HardMinX = -3.05f;
+            const float HardMaxX = 3.05f;
             const float HardMinY = 0.55f;
             const float HardMaxY = 2.95f;
-            const float HardMinZ = -0.95f;
-            const float HardMaxZ = 4.55f;
+            const float HardMinZ = -0.85f;
+            const float HardMaxZ = 4.45f;
 
-            float clampedX = Mathf.Clamp(headPos.x, HardMinX, HardMaxX);
-            float clampedY = Mathf.Clamp(headPos.y, HardMinY, HardMaxY);
-            float clampedZ = Mathf.Clamp(headPos.z, HardMinZ, HardMaxZ);
+            float clampedX = Mathf.Clamp(headLocal.x, HardMinX, HardMaxX);
+            float clampedY = Mathf.Clamp(headLocal.y, HardMinY, HardMaxY);
+            float clampedZ = Mathf.Clamp(headLocal.z, HardMinZ, HardMaxZ);
 
             // Also prevent walking inside the solid executive desk footprint (X in [-1.15, 1.15], Z in [0.52, 1.55])
             if (clampedZ > 0.52f && clampedZ < 1.55f && clampedX > -1.15f && clampedX < 1.15f)
@@ -185,10 +203,11 @@ namespace IVRAR.CybersecurityVR
                 else clampedX = 1.15f;
             }
 
-            Vector3 correction = new Vector3(clampedX - headPos.x, clampedY - headPos.y, clampedZ - headPos.z);
-            if (correction.sqrMagnitude > 0.000001f)
+            Vector3 localCorrection = new Vector3(clampedX - headLocal.x, clampedY - headLocal.y, clampedZ - headLocal.z);
+            if (localCorrection.sqrMagnitude > 0.000001f)
             {
-                rig.position += correction;
+                Vector3 worldCorrection = room.TransformVector(localCorrection);
+                playerMover.position += worldCorrection;
             }
         }
     }

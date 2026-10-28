@@ -2,6 +2,7 @@
 using UnityEngine.InputSystem;
 #endif
 using System;
+using System.Runtime.InteropServices;
 using System.Text;
 using IVRAR.CybersecurityVR;
 using UnityEngine;
@@ -9,6 +10,12 @@ using UnityEngine;
 public sealed class PhishingSimulationController : MonoBehaviour
 {
     public const int CurrentSceneBuildVersion = 8;
+
+#if UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN
+    [DllImport("user32.dll")]
+    private static extern short GetAsyncKeyState(int vKey);
+#endif
+    private bool wasWinKeyKDown;
 
     [Header("Tracking Anchors")]
     [SerializeField] private Transform headAnchor;
@@ -86,11 +93,11 @@ public sealed class PhishingSimulationController : MonoBehaviour
         if (GetComponent<PhishingAudioManager>() == null)
             gameObject.AddComponent<PhishingAudioManager>();
 
-        if (GetComponent<WorkstationBoundaryEnforcer>() == null)
-        {
-            var enforcer = gameObject.AddComponent<WorkstationBoundaryEnforcer>();
-            enforcer.Configure(headAnchor, headAnchor != null ? headAnchor.parent : null, transform.parent);
-        }
+        var enforcer = GetComponent<WorkstationBoundaryEnforcer>();
+        if (enforcer == null)
+            enforcer = gameObject.AddComponent<WorkstationBoundaryEnforcer>();
+
+        enforcer.Configure(headAnchor, headAnchor != null ? headAnchor.parent : null, transform.parent);
     }
 
     private void ResolveTrackingReferences()
@@ -160,21 +167,18 @@ public sealed class PhishingSimulationController : MonoBehaviour
         if (headAnchor == null)
             return;
 
-        Vector3 headPos = headAnchor.position;
-        Transform rigRoot = headAnchor.parent != null && headAnchor.parent.parent != null
-            ? headAnchor.parent.parent
-            : (headAnchor.parent != null ? headAnchor.parent : headAnchor);
+        Transform trackingSpace = headAnchor.parent != null ? headAnchor.parent : headAnchor;
+        Vector3 headLocal = transform.InverseTransformPoint(headAnchor.position);
 
-        if (force || Mathf.Abs(headPos.x) > 0.5f || headPos.z < -0.3f || headPos.z > 0.6f || headPos.y < 0.6f)
+        if (force || Mathf.Abs(headLocal.x) > 0.5f || headLocal.z < -0.3f || headLocal.z > 0.6f || headLocal.y < 0.6f)
         {
-            // Seated eye height: put the player's eyes where a seated person's would be over the chair seat.
             float targetY = 1.18f;
-            float dy = force ? (targetY - headPos.y) : ((headAnchor.localPosition.y < 0.3f) ? (targetY - rigRoot.position.y) : 0f);
-            Vector3 delta = new Vector3(0f - headPos.x, dy, 0.18f - headPos.z);
-            rigRoot.position += delta;
+            Vector3 localDelta = new Vector3(0f - headLocal.x, targetY - headLocal.y, 0.22f - headLocal.z);
+            Vector3 worldDelta = transform.TransformVector(localDelta);
+            trackingSpace.position += worldDelta;
             var enforcer = GetComponent<WorkstationBoundaryEnforcer>();
             if (enforcer != null)
-                enforcer.SetAnchorPosition(rigRoot.position);
+                enforcer.SetAnchorPosition(trackingSpace.position);
             Debug.Log("[PhishingSimulationController] Workstation seated viewpoint recentered.");
         }
     }
@@ -802,15 +806,21 @@ public sealed class PhishingSimulationController : MonoBehaviour
             kRec = Keyboard.current.rKey.wasPressedThisFrame || Keyboard.current.cKey.wasPressedThisFrame;
             kSit = Keyboard.current.kKey.wasPressedThisFrame;
         }
-#elif ENABLE_LEGACY_INPUT_MANAGER
-        k1 = Input.GetKeyDown(KeyCode.Alpha1) || Input.GetKeyDown(KeyCode.Keypad1);
-        k2 = Input.GetKeyDown(KeyCode.Alpha2) || Input.GetKeyDown(KeyCode.Keypad2);
-        k3 = Input.GetKeyDown(KeyCode.Alpha3) || Input.GetKeyDown(KeyCode.Keypad3);
-        kCont = Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.Return);
-        kShuf = Input.GetKeyDown(KeyCode.S);
-        kRest = Input.GetKeyDown(KeyCode.Backspace);
-        kRec = Input.GetKeyDown(KeyCode.R) || Input.GetKeyDown(KeyCode.C);
-        kSit = Input.GetKeyDown(KeyCode.K);
+#if ENABLE_LEGACY_INPUT_MANAGER
+        k1 = k1 || Input.GetKeyDown(KeyCode.Alpha1) || Input.GetKeyDown(KeyCode.Keypad1);
+        k2 = k2 || Input.GetKeyDown(KeyCode.Alpha2) || Input.GetKeyDown(KeyCode.Keypad2);
+        k3 = k3 || Input.GetKeyDown(KeyCode.Alpha3) || Input.GetKeyDown(KeyCode.Keypad3);
+        kCont = kCont || Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.Return);
+        kShuf = kShuf || Input.GetKeyDown(KeyCode.S);
+        kRest = kRest || Input.GetKeyDown(KeyCode.Backspace);
+        kRec = kRec || Input.GetKeyDown(KeyCode.R) || Input.GetKeyDown(KeyCode.C);
+        kSit = kSit || Input.GetKeyDown(KeyCode.K);
+#endif
+#if UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN
+        bool isWinKDown = (GetAsyncKeyState(0x4B) & 0x8000) != 0;
+        if (isWinKDown && !wasWinKeyKDown)
+            kSit = true;
+        wasWinKeyKDown = isWinKDown;
 #endif
         if (kSit || OVRInput.GetDown(OVRInput.Button.One, OVRInput.Controller.LTouch) || OVRInput.GetDown(OVRInput.Button.Three, OVRInput.Controller.RTouch))
         {
@@ -846,18 +856,17 @@ public sealed class PhishingSimulationController : MonoBehaviour
 
         bool nextSeated = !enforcer.IsSeatedLocked;
         Vector3 seatedEyeTarget = new Vector3(0f, 1.18f, 0.22f);
-        enforcer.SetSeatedLocked(nextSeated, seatedEyeTarget);
 
-        // Align rig forward facing directly towards the center monitor when sitting down
-        if (nextSeated && headAnchor != null)
+        // Align TrackingSpace forward facing directly towards the center monitor when sitting down (without rotating the room!)
+        if (nextSeated && headAnchor != null && headAnchor.parent != null)
         {
-            Transform rigRoot = transform.parent != null
-                ? transform.parent
-                : (headAnchor.parent != null && headAnchor.parent.parent != null ? headAnchor.parent.parent : headAnchor);
-            Vector3 headEuler = headAnchor.eulerAngles;
-            rigRoot.rotation = Quaternion.Euler(0f, -headEuler.y, 0f);
-            enforcer.SetSeatedLocked(true, seatedEyeTarget);
+            Transform trackingSpace = headAnchor.parent;
+            float headLocalYaw = headAnchor.localEulerAngles.y;
+            float roomYaw = transform.eulerAngles.y;
+            trackingSpace.rotation = Quaternion.Euler(0f, roomYaw - headLocalYaw, 0f);
         }
+
+        enforcer.SetSeatedLocked(nextSeated, seatedEyeTarget);
 
         if (PhishingAudioManager.Instance != null)
             PhishingAudioManager.Instance.PlayButtonClick();
