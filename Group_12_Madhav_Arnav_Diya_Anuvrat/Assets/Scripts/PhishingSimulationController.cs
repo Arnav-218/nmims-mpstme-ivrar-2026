@@ -2,6 +2,7 @@
 using UnityEngine.InputSystem;
 #endif
 using System;
+using System.Collections;
 using System.Runtime.InteropServices;
 using System.Text;
 using IVRAR.CybersecurityVR;
@@ -9,7 +10,7 @@ using UnityEngine;
 
 public sealed class PhishingSimulationController : MonoBehaviour
 {
-    public const int CurrentSceneBuildVersion = 8;
+    public const int CurrentSceneBuildVersion = 9;
 
 #if UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN
     [DllImport("user32.dll")]
@@ -56,6 +57,7 @@ public sealed class PhishingSimulationController : MonoBehaviour
     private LineRenderer pointerLine;
     private Transform pointerReticle;
     private Transform activeControllerAnchor;
+    private string currentRightMonitorBaseBlock = "";
 
     private const float TextLeftX = -0.66f;
     private const float TextZ = 1.095f;
@@ -76,7 +78,8 @@ public sealed class PhishingSimulationController : MonoBehaviour
         ResolveTrackingReferences();
         InitializeAudioAndBoundaries();
         BuildScene();
-        RecenterIfDisplaced(true);
+        SpawnInOfficeCorner();
+        StartCoroutine(EnforceInitialCornerSpawnCoroutine());
 
         if (pointerLine == null || pointerLine.sharedMaterial == null)
             CreatePointerLine();
@@ -86,6 +89,48 @@ public sealed class PhishingSimulationController : MonoBehaviour
 
         if (integration != null)
             integration.StartSimulation();
+    }
+
+    private IEnumerator EnforceInitialCornerSpawnCoroutine()
+    {
+        for (int i = 0; i < 20; i++)
+        {
+            yield return null;
+            var enforcer = GetComponent<WorkstationBoundaryEnforcer>();
+            if (enforcer != null && enforcer.IsSeatedLocked)
+                yield break;
+            SpawnInOfficeCorner();
+        }
+    }
+
+    public void SpawnInOfficeCorner()
+    {
+        if (headAnchor == null)
+            ResolveTrackingReferences();
+        if (headAnchor == null)
+            return;
+
+        Transform trackingSpace = headAnchor.parent != null ? headAnchor.parent : headAnchor;
+
+        // Orient player diagonal toward the computer desk (yaw = 132 deg in room space)
+        // At (-2.25, 1.32, 2.85), paintings on the back wall (Z=4.85) are to the player's LEFT,
+        // and walking forward/right leads directly to the chair (0, 0, 0.22) and computer (0, 1.34, 1.15).
+        if (trackingSpace != headAnchor)
+        {
+            float headLocalYaw = headAnchor.localEulerAngles.y;
+            float roomYaw = transform.eulerAngles.y + 132f;
+            trackingSpace.rotation = Quaternion.Euler(0f, roomYaw - headLocalYaw, 0f);
+        }
+
+        Vector3 headLocal = transform.InverseTransformPoint(headAnchor.position);
+        Vector3 cornerSpawnLocal = new Vector3(-2.25f, 1.32f, 2.85f);
+        Vector3 localDelta = cornerSpawnLocal - headLocal;
+        Vector3 worldDelta = transform.TransformVector(localDelta);
+        trackingSpace.position += worldDelta;
+
+        var enforcer = GetComponent<WorkstationBoundaryEnforcer>();
+        if (enforcer != null)
+            enforcer.SetAnchorPosition(trackingSpace.position);
     }
 
     private void InitializeAudioAndBoundaries()
@@ -668,52 +713,52 @@ public sealed class PhishingSimulationController : MonoBehaviour
         linkText = CreateAoiLabel("AOI_Hyperlink", "", new Vector3(TextLeftX, 1.08f, TextZ), 23, 0.0105f, new Color(0.58f, 0.78f, 0.96f), AOIType.HyperlinkTarget, "hyperlink_target", 30);
         feedbackText = CreateLabel("Scenario Feedback", "", new Vector3(TextLeftX, 0.98f, TextZ), 21, 0.0096f, subHeaderColor, TextAnchor.UpperLeft);
 
-        // 2. LEFT TELEMETRY MONITOR (Angled -28° inward toward player, offset to X=-1.12m)
+        // 2. LEFT TELEMETRY MONITOR (Angled -28° inward toward player, offset to X=-1.14m, enlarged for larger font readability)
         GameObject leftMonObj = new GameObject("Left Telemetry Monitor");
         leftMonObj.transform.SetParent(officeContent, false);
-        leftMonObj.transform.localPosition = new Vector3(-1.12f, 1.34f, 1.06f);
+        leftMonObj.transform.localPosition = new Vector3(-1.14f, 1.34f, 1.06f);
         leftMonObj.transform.localRotation = Quaternion.Euler(0f, -28f, 0f);
 
-        CreateBox("Left Monitor Bezel", Vector3.zero, new Vector3(0.74f, 0.84f, 0.05f), bezelColor, leftMonObj.transform);
-        CreateBox("Left Monitor Screen", new Vector3(0f, 0f, -0.026f), new Vector3(0.70f, 0.80f, 0.005f), screenBgColor, leftMonObj.transform);
-        CreateBox("Left Monitor Back Casing", new Vector3(0f, 0f, 0.045f), new Vector3(0.76f, 0.86f, 0.08f), new Color(0.07f, 0.08f, 0.09f), leftMonObj.transform);
+        CreateBox("Left Monitor Bezel", Vector3.zero, new Vector3(0.86f, 0.92f, 0.05f), bezelColor, leftMonObj.transform);
+        CreateBox("Left Monitor Screen", new Vector3(0f, 0f, -0.026f), new Vector3(0.82f, 0.88f, 0.005f), screenBgColor, leftMonObj.transform);
+        CreateBox("Left Monitor Back Casing", new Vector3(0f, 0f, 0.045f), new Vector3(0.88f, 0.94f, 0.08f), new Color(0.07f, 0.08f, 0.09f), leftMonObj.transform);
         CreateBox("Left VESA Plate", new Vector3(0f, 0f, 0.090f), new Vector3(0.18f, 0.18f, 0.025f), new Color(0.14f, 0.15f, 0.18f), leftMonObj.transform);
 
         CreateBox("Left Mount Arm Upper", new Vector3(0.12f, -0.38f, 0.08f), new Vector3(0.05f, 0.16f, 0.08f), new Color(0.18f, 0.20f, 0.23f), leftMonObj.transform);
         CreateBox("Left Mount Arm Lower", new Vector3(0.18f, -0.48f, 0.12f), new Vector3(0.06f, 0.18f, 0.08f), new Color(0.18f, 0.20f, 0.23f), leftMonObj.transform);
 
-        CreateBox("Left Monitor Titlebar", new Vector3(0f, 0.365f, -0.028f), new Vector3(0.68f, 0.05f, 0.004f), headerBarColor, leftMonObj.transform, false);
-        CreateBox("Left Titlebar Divider", new Vector3(0f, 0.338f, -0.029f), new Vector3(0.68f, 0.003f, 0.004f), dividerColor, leftMonObj.transform, false);
-        CreateBox("Left Telemetry Card", new Vector3(0f, -0.02f, -0.027f), new Vector3(0.66f, 0.68f, 0.003f), cardSurfaceColor, leftMonObj.transform, false);
-        CreateLabel("Left Title Text", "SESSION METRICS & GAZE TELEMETRY", new Vector3(-0.31f, 0.368f, -0.032f), 20, 0.0090f, headerTextColor, TextAnchor.MiddleLeft, leftMonObj.transform);
-        telemetryHudText = CreateLabel("Telemetry HUD Text", "INITIALIZING...", new Vector3(-0.31f, 0.30f, -0.032f), 20, 0.0092f, new Color(0.84f, 0.88f, 0.92f), TextAnchor.UpperLeft, leftMonObj.transform);
+        CreateBox("Left Monitor Titlebar", new Vector3(0f, 0.405f, -0.028f), new Vector3(0.80f, 0.055f, 0.004f), headerBarColor, leftMonObj.transform, false);
+        CreateBox("Left Titlebar Divider", new Vector3(0f, 0.376f, -0.029f), new Vector3(0.80f, 0.003f, 0.004f), dividerColor, leftMonObj.transform, false);
+        CreateBox("Left Telemetry Card", new Vector3(0f, -0.025f, -0.027f), new Vector3(0.78f, 0.76f, 0.003f), cardSurfaceColor, leftMonObj.transform, false);
+        CreateLabel("Left Title Text", "SESSION METRICS & GAZE TELEMETRY", new Vector3(-0.37f, 0.408f, -0.032f), 22, 0.0102f, headerTextColor, TextAnchor.MiddleLeft, leftMonObj.transform);
+        telemetryHudText = CreateLabel("Telemetry HUD Text", "INITIALIZING...", new Vector3(-0.37f, 0.34f, -0.032f), 23, 0.0108f, new Color(0.86f, 0.90f, 0.94f), TextAnchor.UpperLeft, leftMonObj.transform);
 
-        // 3. RIGHT FORENSICS & HEADER INSPECTOR MONITOR (X=+1.12m)
+        // 3. RIGHT FORENSICS & EYE-GAZE REPORT MONITOR (X=+1.14m, enlarged for larger font readability)
         GameObject rightMonObj = new GameObject("Right Forensics Monitor");
         rightMonObj.transform.SetParent(officeContent, false);
-        rightMonObj.transform.localPosition = new Vector3(1.12f, 1.34f, 1.06f);
+        rightMonObj.transform.localPosition = new Vector3(1.14f, 1.34f, 1.06f);
         rightMonObj.transform.localRotation = Quaternion.Euler(0f, 28f, 0f);
 
-        CreateBox("Right Monitor Bezel", Vector3.zero, new Vector3(0.74f, 0.84f, 0.05f), bezelColor, rightMonObj.transform);
-        CreateBox("Right Monitor Screen", new Vector3(0f, 0f, -0.026f), new Vector3(0.70f, 0.80f, 0.005f), screenBgColor, rightMonObj.transform);
-        CreateBox("Right Monitor Back Casing", new Vector3(0f, 0f, 0.045f), new Vector3(0.76f, 0.86f, 0.08f), new Color(0.07f, 0.08f, 0.09f), rightMonObj.transform);
+        CreateBox("Right Monitor Bezel", Vector3.zero, new Vector3(0.86f, 0.92f, 0.05f), bezelColor, rightMonObj.transform);
+        CreateBox("Right Monitor Screen", new Vector3(0f, 0f, -0.026f), new Vector3(0.82f, 0.88f, 0.005f), screenBgColor, rightMonObj.transform);
+        CreateBox("Right Monitor Back Casing", new Vector3(0f, 0f, 0.045f), new Vector3(0.88f, 0.94f, 0.08f), new Color(0.07f, 0.08f, 0.09f), rightMonObj.transform);
         CreateBox("Right VESA Plate", new Vector3(0f, 0f, 0.090f), new Vector3(0.18f, 0.18f, 0.025f), new Color(0.14f, 0.15f, 0.18f), rightMonObj.transform);
 
         CreateBox("Right Mount Arm Upper", new Vector3(-0.12f, -0.38f, 0.08f), new Vector3(0.05f, 0.16f, 0.08f), new Color(0.18f, 0.20f, 0.23f), rightMonObj.transform);
         CreateBox("Right Mount Arm Lower", new Vector3(-0.18f, -0.48f, 0.12f), new Vector3(0.06f, 0.18f, 0.08f), new Color(0.18f, 0.20f, 0.23f), rightMonObj.transform);
 
-        CreateBox("Right Monitor Titlebar", new Vector3(0f, 0.365f, -0.028f), new Vector3(0.68f, 0.05f, 0.004f), headerBarColor, rightMonObj.transform, false);
-        CreateBox("Right Titlebar Divider", new Vector3(0f, 0.338f, -0.029f), new Vector3(0.68f, 0.003f, 0.004f), dividerColor, rightMonObj.transform, false);
-        CreateBox("Right Forensics Card", new Vector3(0f, -0.07f, -0.027f), new Vector3(0.66f, 0.56f, 0.003f), cardSurfaceColor, rightMonObj.transform, false);
-        CreateLabel("Right Title Text", "HEADER & DNS FORENSIC INSPECTOR", new Vector3(-0.31f, 0.368f, -0.032f), 20, 0.0090f, headerTextColor, TextAnchor.MiddleLeft, rightMonObj.transform);
+        CreateBox("Right Monitor Titlebar", new Vector3(0f, 0.405f, -0.028f), new Vector3(0.80f, 0.055f, 0.004f), headerBarColor, rightMonObj.transform, false);
+        CreateBox("Right Titlebar Divider", new Vector3(0f, 0.376f, -0.029f), new Vector3(0.80f, 0.003f, 0.004f), dividerColor, rightMonObj.transform, false);
+        CreateBox("Right Forensics Card", new Vector3(0f, -0.07f, -0.027f), new Vector3(0.78f, 0.65f, 0.003f), cardSurfaceColor, rightMonObj.transform, false);
+        CreateLabel("Right Title Text", "FORENSICS & EYE-GAZE REPORTS", new Vector3(-0.37f, 0.408f, -0.032f), 22, 0.0102f, headerTextColor, TextAnchor.MiddleLeft, rightMonObj.transform);
 
-        // Timer background & progress bar (strictly contained inside Timer BG at X=0, width=0.62m, calm matte slate blue)
-        CreateBox("Timer BG", new Vector3(0f, 0.29f, -0.028f), new Vector3(0.64f, 0.030f, 0.004f), new Color(0.09f, 0.11f, 0.14f), rightMonObj.transform, false);
-        GameObject timerBarObj = CreateBox("Timer Bar", new Vector3(0f, 0.29f, -0.031f), new Vector3(0.62f, 0.020f, 0.004f), new Color(0.38f, 0.62f, 0.85f), rightMonObj.transform, false);
+        // Timer background & progress bar
+        CreateBox("Timer BG", new Vector3(0f, 0.335f, -0.028f), new Vector3(0.74f, 0.030f, 0.004f), new Color(0.09f, 0.11f, 0.14f), rightMonObj.transform, false);
+        GameObject timerBarObj = CreateBox("Timer Bar", new Vector3(0f, 0.335f, -0.031f), new Vector3(0.72f, 0.020f, 0.004f), new Color(0.38f, 0.62f, 0.85f), rightMonObj.transform, false);
         timerProgressBar = timerBarObj.transform;
 
-        timerHudText = CreateLabel("Timer Text", "RESPONSE WINDOW: 05:00", new Vector3(-0.31f, 0.245f, -0.032f), 19, 0.0088f, subHeaderColor, TextAnchor.MiddleLeft, rightMonObj.transform);
-        forensicsHudText = CreateLabel("Forensics Text", "INSPECTING HEADERS...", new Vector3(-0.31f, 0.195f, -0.032f), 18, 0.0084f, new Color(0.84f, 0.88f, 0.92f), TextAnchor.UpperLeft, rightMonObj.transform);
+        timerHudText = CreateLabel("Timer Text", "RESPONSE WINDOW: 05:00", new Vector3(-0.37f, 0.290f, -0.032f), 21, 0.0100f, subHeaderColor, TextAnchor.MiddleLeft, rightMonObj.transform);
+        forensicsHudText = CreateLabel("Forensics Text", "INSPECTING HEADERS...", new Vector3(-0.37f, 0.235f, -0.032f), 21, 0.0100f, new Color(0.86f, 0.90f, 0.94f), TextAnchor.UpperLeft, rightMonObj.transform);
     }
 
     // =========================================================================
@@ -788,6 +833,7 @@ public sealed class PhishingSimulationController : MonoBehaviour
     {
         HandleKeyboardShortcuts();
         UpdateUrgencyTimerDisplay();
+        UpdateLiveRightMonitorReports();
         UpdateLaserPointerRay();
     }
 
@@ -898,10 +944,10 @@ public sealed class PhishingSimulationController : MonoBehaviour
             float ratio = Mathf.Clamp01(remaining / total);
             if (timerProgressBar != null)
             {
-                float fullWidth = 0.62f;
+                float fullWidth = 0.72f;
                 float currentWidth = Mathf.Max(0.001f, fullWidth * ratio);
-                timerProgressBar.localScale = new Vector3(currentWidth, 0.024f, 0.004f);
-                timerProgressBar.localPosition = new Vector3(-fullWidth * 0.5f + currentWidth * 0.5f, 0.29f, -0.031f);
+                timerProgressBar.localScale = new Vector3(currentWidth, 0.022f, 0.004f);
+                timerProgressBar.localPosition = new Vector3(-fullWidth * 0.5f + currentWidth * 0.5f, 0.335f, -0.031f);
                 Color barColor = ratio > 0.4f
                     ? Color.Lerp(new Color(0.82f, 0.64f, 0.32f), new Color(0.38f, 0.62f, 0.85f), (ratio - 0.4f) / 0.6f)
                     : Color.Lerp(new Color(0.82f, 0.35f, 0.35f), new Color(0.82f, 0.64f, 0.32f), ratio / 0.4f);
@@ -1112,20 +1158,18 @@ public sealed class PhishingSimulationController : MonoBehaviour
         string returnPath = scenario.hasDomainAnomaly ? $"bounce-relay@{senderDomain}" : scenario.senderAddress;
         string spfStatus = string.Equals(senderDomain, scenario.displayDomain, StringComparison.OrdinalIgnoreCase)
             ? "PASS (aligned)"
-            : $"SOFTFAIL (sender {senderDomain} != {scenario.displayDomain})";
+            : $"SOFTFAIL ({senderDomain} != {scenario.displayDomain})";
 
-        forensicsHudText.text =
-            $"SMTP HEADER TELEMETRY:\n" +
+        currentRightMonitorBaseBlock =
+            $"SMTP & URL FORENSIC REPORT:\n" +
             $"Claimed Org:  {scenario.displayDomain}\n" +
             $"From Domain:  {senderDomain}\n" +
             $"Return-Path:  <{returnPath}>\n" +
             $"SPF / DKIM:   {spfStatus}\n" +
-            $"--------------------------------\n" +
-            $"HYPERLINK INSPECTION:\n" +
             $"Target Host:  {linkHost}\n" +
-            $"Full URI:     {WrapText(scenario.rawHyperlinkUrl, 34, false)}\n" +
             $"Attachment:   {attachmentTag}";
 
+        UpdateLiveRightMonitorReports();
         SetDecisionButtonsAvailable(true);
         SetContinueAvailable(false);
     }
@@ -1183,7 +1227,11 @@ public sealed class PhishingSimulationController : MonoBehaviour
         {
             var mgr = integration.ScenarioManager;
             UpdateTelemetryDisplay(mgr.CurrentScenarioIndex + 1, mgr.ScenarioCount);
-            forensicsHudText.text = $"FORENSIC ANALYSIS:\nOutcome: {(correct ? "CORRECT" : "COMPROMISED")}\nClassification: {classification}\n\nWARNING SIGNS:\n{WrapText(mgr.CurrentScenario.warningSigns, 42, false)}\n\nFEEDBACK:\n{WrapText(feedback, 42, false)}";
+            currentRightMonitorBaseBlock =
+                $"FORENSIC OUTCOME REPORT:\n" +
+                $"Outcome: {(correct ? "CORRECT" : "COMPROMISED")}  |  {classification}\n" +
+                $"Indicators: {WrapText(mgr.CurrentScenario.warningSigns, 38, false)}";
+            UpdateLiveRightMonitorReports();
         }
 
         SetDecisionButtonsAvailable(false);
@@ -1205,11 +1253,80 @@ public sealed class PhishingSimulationController : MonoBehaviour
             var mgr = integration.ScenarioManager;
             UpdateTelemetryDisplay(mgr.ScenarioCount, mgr.ScenarioCount);
             float accuracy = mgr.completedDecisionsCount > 0 ? (float)mgr.correctClassifications / mgr.completedDecisionsCount * 100f : 0f;
-            forensicsHudText.text = $"FINAL SESSION SUMMARY:\nFinal Accuracy: {accuracy:F1}%\nThreats Reported: {mgr.reportingActionsCount}\nMalicious Clicks: {mgr.maliciousClicksCount}\n\nStatus: Telemetry Committed.";
+            currentRightMonitorBaseBlock =
+                $"FINAL SESSION REPORT:\n" +
+                $"Final Accuracy: {accuracy:F1}%\n" +
+                $"Threats Reported: {mgr.reportingActionsCount}  |  Malicious Clicks: {mgr.maliciousClicksCount}\n" +
+                $"Status: All CSV Telemetry Committed.";
+            UpdateLiveRightMonitorReports();
         }
 
         SetDecisionButtonsAvailable(false);
         SetContinueAvailable(false);
+    }
+
+    private void UpdateLiveRightMonitorReports()
+    {
+        if (forensicsHudText == null)
+            return;
+
+        if (integration != null && integration.ScenarioManager != null && integration.ScenarioManager.IsSessionActive)
+        {
+            var mgr = integration.ScenarioManager;
+            UpdateTelemetryDisplay(mgr.CurrentScenarioIndex + 1, mgr.ScenarioCount);
+        }
+
+        EyeGazeAttentionTracker tracker = integration != null && integration.GazeBridge != null
+            ? integration.GazeBridge.Tracker
+            : null;
+
+        string activeAoi = "none";
+        int fixCount = 0;
+        double senderMs = 0.0;
+        double linkMs = 0.0;
+        double bodyMs = 0.0;
+        double tirPct = 0.0;
+
+        if (tracker != null)
+        {
+            activeAoi = tracker.LatestHitAoiId ?? tracker.LatestHitAoiType.ToString();
+            if (tracker.IsTrialActive && tracker.MetricsAccumulator != null)
+            {
+                var acc = tracker.MetricsAccumulator;
+                fixCount = acc.Fixations != null ? acc.Fixations.Count : 0;
+                if (acc.AoiMetrics != null)
+                {
+                    if (acc.AoiMetrics.TryGetValue(AOIType.SenderHeader.ToSnakeCaseId(), out var s))
+                        senderMs = s.rawSampleDwellTimeMs > 0 ? s.rawSampleDwellTimeMs : s.fixationDwellTimeMs;
+                    if (acc.AoiMetrics.TryGetValue(AOIType.HyperlinkTarget.ToSnakeCaseId(), out var l))
+                        linkMs = l.rawSampleDwellTimeMs > 0 ? l.rawSampleDwellTimeMs : l.fixationDwellTimeMs;
+                    if (acc.AoiMetrics.TryGetValue(AOIType.EmailBody.ToSnakeCaseId(), out var b))
+                        bodyMs = b.rawSampleDwellTimeMs > 0 ? b.rawSampleDwellTimeMs : b.fixationDwellTimeMs;
+                }
+                double diag = senderMs + linkMs;
+                double tot = diag + bodyMs;
+                tirPct = tot > 1.0 ? (diag / tot) * 100.0 : 0.0;
+            }
+            else if (tracker.LastTrialSummary != null)
+            {
+                var last = tracker.LastTrialSummary;
+                fixCount = last.totalFixationCount;
+                senderMs = last.senderHeaderDwellMs;
+                linkMs = last.hyperlinkTargetDwellMs;
+                bodyMs = last.emailBodyDwellMs;
+                tirPct = last.threatInspectionRatio * 100.0;
+            }
+        }
+
+        forensicsHudText.text =
+            $"{currentRightMonitorBaseBlock}\n" +
+            $"--------------------------------\n" +
+            $"EYE-GAZE & ATTENTION REPORT:\n" +
+            $"Active Gaze:  {activeAoi}\n" +
+            $"I-DT Fixs:    {fixCount} fixations\n" +
+            $"Sender/Link:  {senderMs:F0}ms / {linkMs:F0}ms\n" +
+            $"Body Dwell:   {bodyMs:F0}ms\n" +
+            $"Inspect TIR:  {tirPct:F1}% (Diagnostic)";
     }
 
     private void UpdateTelemetryDisplay(int current, int total)

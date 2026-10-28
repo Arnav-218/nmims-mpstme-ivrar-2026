@@ -29,7 +29,7 @@ namespace IVRAR.CybersecurityVR
         [SerializeField] private float roomMinX = -3.05f;
         [SerializeField] private float roomMaxX = 3.05f;
         [SerializeField] private float roomMinY = 0.55f;
-        [SerializeField] private float roomMaxY = 2.95f;
+        [SerializeField] private float roomMaxY = 1.65f;
         [SerializeField] private float roomMinZ = -0.85f;
         [SerializeField] private float roomMaxZ = 4.45f;
 
@@ -177,11 +177,11 @@ namespace IVRAR.CybersecurityVR
 
             // 2. Hard interior wall/floor/ceiling clamp in room local coordinates:
             // Walls are at X: [-3.55, 3.55], Y: [0, 3.4], Z: [-1.35, 4.95].
-            // Keep player's head strictly inside with a 0.45m safety margin from every wall!
+            // Keep player's head strictly inside at natural standing/seated eye height (max 1.65m so camera is NEVER lifted in the air)!
             const float HardMinX = -3.05f;
             const float HardMaxX = 3.05f;
             const float HardMinY = 0.55f;
-            const float HardMaxY = 2.95f;
+            const float HardMaxY = 1.65f;
             const float HardMinZ = -0.85f;
             const float HardMaxZ = 4.45f;
 

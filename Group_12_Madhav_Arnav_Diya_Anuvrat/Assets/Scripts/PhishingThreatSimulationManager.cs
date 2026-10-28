@@ -115,309 +115,309 @@ public struct PhishingScenarioData
     }
 }
 
-       private void InitializeDefaultScenarios()
-{
-    masterScenarioPool.Clear();
+        private void InitializeDefaultScenarios()
+        {
+            masterScenarioPool.Clear();
 
-    // ============================================================
-    // S01 - Urgency/Scarcity - Deceptive Phish - Easy
-    // ============================================================
-    masterScenarioPool.Add(new PhishingScenarioData
-    {
-        scenarioId = "S01",
-        classification = ThreatClassification.DeceptivePhish,
-        biasType = CognitiveBiasType.UrgencyScarcity,
-        difficulty = "Easy",
-        context = "Student receives an urgent university account verification email.",
-        displayName = "University IT Security",
-        senderAddress = "security-admin@university-portal-verify.com",
-        displayDomain = "university.edu",
-        rawHyperlinkUrl = "https://university-portal-verify.com/auth",
-        subjectLine = "URGENT: Mandatory Account Verification Required Within 2 Hours",
-        emailBody = "Your university account has been flagged due to unusual login activity. To prevent suspension of your campus services, you must verify your account immediately.\n\nFailure to complete verification within 2 hours may result in temporary loss of access to university email, learning resources, and other campus services.\n\nPlease use the verification link below to confirm your account.",
-        warningSigns = "Strong time pressure; sender domain mismatch; deceptive displayed domain; immediate verification request; threat of losing access.",
-        hasGrammaticalAnomalies = false,
-        hasDomainAnomaly = true,
-        attachmentName = "",
-        timePressureSeconds = 120f,
-        correctAction = "Report Phish",
-        correctiveFeedback = "The message uses urgency and fear of account suspension to pressure the recipient. The sender domain and actual link do not belong to the legitimate university domain."
-    });
+            // ============================================================
+            // S01 - Urgency/Scarcity - Deceptive Phish - Hard
+            // ============================================================
+            masterScenarioPool.Add(new PhishingScenarioData
+            {
+                scenarioId = "S01",
+                classification = ThreatClassification.DeceptivePhish,
+                biasType = CognitiveBiasType.UrgencyScarcity,
+                difficulty = "Hard",
+                context = "Routine SSO multi-factor session synchronization notice.",
+                displayName = "University Identity & Access Management",
+                senderAddress = "iam-sync@univ-sso-services.edu.org",
+                displayDomain = "university.edu",
+                rawHyperlinkUrl = "https://sso.university.edu.iam-session-sync.org/oauth2/v2/authorize",
+                subjectLine = "Notice: Academic Term SSO Certificate Renewal & MFA Sync",
+                emailBody = "Dear Student,\n\nAs part of the scheduled Fall Semester Identity Provider update, student Single Sign-On (SSO) tokens issued prior to October 1st are being migrated to the updated SAML 2.0 endpoint.\n\nIf you access Canvas, Campus Wi-Fi (eduroam), or Library VPN from off-campus devices, please review your active device bindings on the Identity Management Portal before Friday at 17:00.\n\nIdentity & Access Management\nOffice of Information Technology",
+                warningSigns = "Sender domain (univ-sso-services.edu.org) and target host (iam-session-sync.org) are external lookalike domains disguised with a 'sso.university.edu' subdomain prefix.",
+                hasGrammaticalAnomalies = false,
+                hasDomainAnomaly = true,
+                attachmentName = "",
+                timePressureSeconds = 180f,
+                correctAction = "Report Phish",
+                correctiveFeedback = "The email body uses calm, realistic IT terminology without obvious threats. However, inspecting the Left/Right telemetry reveals the actual host is 'iam-session-sync.org', not 'university.edu'."
+            });
 
-    // ============================================================
-    // S02 - Urgency/Scarcity - Deceptive Phish - Hard
-    // ============================================================
-    masterScenarioPool.Add(new PhishingScenarioData
-    {
-        scenarioId = "S02",
-        classification = ThreatClassification.DeceptivePhish,
-        biasType = CognitiveBiasType.UrgencyScarcity,
-        difficulty = "Hard",
-        context = "Student receives a registration verification request near a deadline.",
-        displayName = "Student Services",
-        senderAddress = "studentservices@university-registrar.com",
-        displayDomain = "university.edu",
-        rawHyperlinkUrl = "https://university-registrar.com/verify-registration",
-        subjectLine = "Action Required: Complete Registration Verification",
-        emailBody = "Dear Student,\n\nAs part of the current registration process, an additional verification step is required for selected student accounts.\n\nOur records indicate that your registration requires verification before the current registration window closes. Please review your account and complete the verification process using the link below.\n\nIf verification is not completed before the registration window closes, your registration may require additional processing.\n\nStudent Services\nUniversity Administration",
-        warningSigns = "Sender domain differs from legitimate university domain; deadline pressure; unfamiliar verification link; plausible administrative context; displayed domain does not match destination.",
-        hasGrammaticalAnomalies = false,
-        hasDomainAnomaly = true,
-        attachmentName = "",
-        timePressureSeconds = 300f,
-        correctAction = "Report Phish",
-        correctiveFeedback = "The message appears credible but the sender and destination domains do not match the official university domain. Administrative requests should be independently verified."
-    });
+            // ============================================================
+            // S02 - Urgency/Scarcity - Deceptive Phish - Hard
+            // ============================================================
+            masterScenarioPool.Add(new PhishingScenarioData
+            {
+                scenarioId = "S02",
+                classification = ThreatClassification.DeceptivePhish,
+                biasType = CognitiveBiasType.UrgencyScarcity,
+                difficulty = "Hard",
+                context = "Course registration hold & Bursar tuition reconciliation.",
+                displayName = "Office of the Bursar & Registration",
+                senderAddress = "bursar-billing@university-studentaccounts.com",
+                displayDomain = "university.edu",
+                rawHyperlinkUrl = "https://bursar.university-studentaccounts.com/term-clearance/statement",
+                subjectLine = "Spring Term Course Pre-Registration Clearance Status",
+                emailBody = "Dear Student,\n\nOur student accounting system indicates a pending reconciliation item ($0.00 balance adjustment) on your current semester ledger following the recent financial aid disbursement.\n\nWhile no payment is due, students must acknowledge the updated term statement prior to their assigned registration time-ticket window so course enrollment holds are automatically cleared.\n\nOffice of the Bursar\nStudent Financial Services",
+                warningSigns = "Reassuringly claims '$0.00 due' to lower suspicion, but routes through external domain 'university-studentaccounts.com' instead of 'university.edu'.",
+                hasGrammaticalAnomalies = false,
+                hasDomainAnomaly = true,
+                attachmentName = "Statement_Adjustment_Oct2026.pdf.html",
+                timePressureSeconds = 240f,
+                correctAction = "Report Phish",
+                correctiveFeedback = "Sophisticated phishing often avoids asking for money directly (even claiming a $0.00 balance) to make you click the link and enter your SSO password. Check the domain telemetry and double-extension '.pdf.html' attachment."
+            });
 
-    // ============================================================
-    // S03 - Urgency/Scarcity - Legitimate - Medium
-    // ============================================================
-    masterScenarioPool.Add(new PhishingScenarioData
-    {
-        scenarioId = "S03",
-        classification = ThreatClassification.Legitimate,
-        biasType = CognitiveBiasType.UrgencyScarcity,
-        difficulty = "Medium",
-        context = "Genuine university IT maintenance notification.",
-        displayName = "University IT Service Desk",
-        senderAddress = "servicedesk@university.edu",
-        displayDomain = "university.edu",
-        rawHyperlinkUrl = "https://servicedesk.university.edu/maintenance",
-        subjectLine = "Scheduled Campus Network Maintenance - Sunday 02:00 AM",
-        emailBody = "Dear Student,\n\nThe University IT Service Desk will perform scheduled network maintenance on Sunday between 02:00 AM and 04:00 AM.\n\nDuring this period, some university online services may be temporarily unavailable.\n\nNo action is required from students. You do not need to provide your password or account credentials.\n\nFor further information, please visit the IT Service Desk maintenance page through the university's official service portal.\n\nUniversity IT Service Desk",
-        warningSigns = "None.",
-        hasGrammaticalAnomalies = false,
-        hasDomainAnomaly = false,
-        attachmentName = "",
-        timePressureSeconds = 300f,
-        correctAction = "Ignore / Read Without Reporting",
-        correctiveFeedback = "This was a legitimate university notification. The sender and destination use the official university domain and no credentials are requested."
-    });
+            // ============================================================
+            // S03 - Urgency/Scarcity - Legitimate - Hard
+            // ============================================================
+            masterScenarioPool.Add(new PhishingScenarioData
+            {
+                scenarioId = "S03",
+                classification = ThreatClassification.Legitimate,
+                biasType = CognitiveBiasType.UrgencyScarcity,
+                difficulty = "Hard",
+                context = "Genuine urgent campus VPN & Duo MFA security upgrade.",
+                displayName = "University IT Security Operations",
+                senderAddress = "secops-alerts@university.edu",
+                displayDomain = "university.edu",
+                rawHyperlinkUrl = "https://iam.university.edu/duo-device-management",
+                subjectLine = "ACTION REQUIRED: Mandatory Duo MFA Hardware Token Migration by Friday",
+                emailBody = "ATTENTION ALL STUDENTS & FACULTY:\n\nFollowing recent advisories regarding SMS-based authentication vulnerabilities, University IT Security is disabling SMS/Voice passcodes on all campus accounts effective Friday at 23:59.\n\nAccounts that have not registered the Duo Mobile push app or a FIDO2 security key by the deadline will experience a temporary login block until verified via the IT Helpdesk.\n\nReview your registered MFA devices on the official Identity Portal.\n\nUniversity IT Security Operations",
+                warningSigns = "None. Despite strong urgency and deadline language, the sender (@university.edu), SPF/DKIM alignment, and target host (iam.university.edu) are 100% authentic.",
+                hasGrammaticalAnomalies = false,
+                hasDomainAnomaly = false,
+                attachmentName = "Duo_Migration_Guide_2026.pdf",
+                timePressureSeconds = 240f,
+                correctAction = "Ignore / Read Without Reporting",
+                correctiveFeedback = "Real IT departments frequently send urgent, deadline-driven security notices! You cannot judge legitimacy by tone alone—inspecting the header telemetry confirms 'secops-alerts@university.edu' and 'iam.university.edu' are completely genuine."
+            });
 
-    // ============================================================
-    // S04 - Authority Bias - Spear Phish - Medium
-    // ============================================================
-    masterScenarioPool.Add(new PhishingScenarioData
-    {
-        scenarioId = "S04",
-        classification = ThreatClassification.SpearPhishTargeted,
-        biasType = CognitiveBiasType.AuthorityBias,
-        difficulty = "Medium",
-        context = "Email impersonates a senior university IT administrator.",
-        displayName = "Director of Information Technology",
-        senderAddress = "it-director@university-itservices.com",
-        displayDomain = "university.edu",
-        rawHyperlinkUrl = "https://university-itservices.com/security-review",
-        subjectLine = "Security Review: Student Account Confirmation Required",
-        emailBody = "Dear Student,\n\nAs part of a routine university security review, selected student accounts have been identified for confirmation.\n\nPlease complete the account confirmation process using the secure link below. This request has been issued by the Office of Information Technology.\n\nPlease complete the review at your earliest convenience.\n\nRegards,\nDirector of Information Technology\nUniversity Information Technology Services",
-        warningSigns = "Sender domain mismatch; authority-based display name; unfamiliar account-confirmation link; reliance on senior role.",
-        hasGrammaticalAnomalies = false,
-        hasDomainAnomaly = true,
-        attachmentName = "",
-        timePressureSeconds = 180f,
-        correctAction = "Report Phish",
-        correctiveFeedback = "The message attempts to exploit authority bias. The sender and destination domains should be independently verified rather than trusted because of the claimed position."
-    });
+            // ============================================================
+            // S04 - Authority Bias - Spear Phish - Hard
+            // ============================================================
+            masterScenarioPool.Add(new PhishingScenarioData
+            {
+                scenarioId = "S04",
+                classification = ThreatClassification.SpearPhishTargeted,
+                biasType = CognitiveBiasType.AuthorityBias,
+                difficulty = "Hard",
+                context = "Research ethics IRB protocol renewal notice.",
+                displayName = "Institutional Review Board (IRB) Compliance",
+                senderAddress = "irb-docket@univ-research-compliance.org",
+                displayDomain = "university.edu",
+                rawHyperlinkUrl = "https://cayuse.univ-research-compliance.org/irb/protocol-review",
+                subjectLine = "IRB Protocol #2026-0418: Annual Continuing Review Signature Needed",
+                emailBody = "Dear Investigator / Student Researcher,\n\nThe Institutional Review Board has completed the preliminary administrative check for your human-subjects research protocol (#2026-0418).\n\nBefore final committee sign-off can be recorded for the upcoming academic cycle, co-investigators must verify their CITI training completion date on the Cayuse compliance form linked below.\n\nOffice of Research Integrity & Compliance",
+                warningSigns = "Highly realistic academic context, but uses external domain 'univ-research-compliance.org' instead of the official 'university.edu' domain.",
+                hasGrammaticalAnomalies = false,
+                hasDomainAnomaly = true,
+                attachmentName = "",
+                timePressureSeconds = 210f,
+                correctAction = "Report Phish",
+                correctiveFeedback = "Spear-phishing targets academic researchers using realistic terminology (IRB, CITI, Cayuse). Always cross-check the sender domain and Return-Path on the forensic monitor."
+            });
 
-    // ============================================================
-    // S05 - Authority Bias - Spear Phish - Hard
-    // ============================================================
-    masterScenarioPool.Add(new PhishingScenarioData
-    {
-        scenarioId = "S05",
-        classification = ThreatClassification.SpearPhishTargeted,
-        biasType = CognitiveBiasType.AuthorityBias,
-        difficulty = "Hard",
-        context = "Senior university administrator impersonation involving a confidential academic review.",
-        displayName = "Office of the Dean",
-        senderAddress = "dean-office@university-academics.org",
-        displayDomain = "university.edu",
-        rawHyperlinkUrl = "https://university-academics.org/review/document",
-        subjectLine = "Confidential: Academic Review Document",
-        emailBody = "Dear Student,\n\nThe Office of the Dean is currently conducting a confidential review of selected academic records.\n\nYou have been included in the review process. Please access the confidential document using the secure link below and review the information before the academic review meeting.\n\nPlease do not forward this message as the contents are intended only for the recipient.\n\nOffice of the Dean\nUniversity Administration",
-        warningSigns = "Sender domain mismatch; authority cue; confidentiality discourages verification; unfamiliar destination; independent confirmation is required.",
-        hasGrammaticalAnomalies = false,
-        hasDomainAnomaly = true,
-        attachmentName = "",
-        timePressureSeconds = 600f,
-        correctAction = "Report Phish",
-        correctiveFeedback = "The message uses authority and confidentiality to reduce verification. A request from a senior official should still be independently verified, especially when sensitive information is involved."
-    });
+            // ============================================================
+            // S05 - Authority Bias - Spear Phish - Hard
+            // ============================================================
+            masterScenarioPool.Add(new PhishingScenarioData
+            {
+                scenarioId = "S05",
+                classification = ThreatClassification.SpearPhishTargeted,
+                biasType = CognitiveBiasType.AuthorityBias,
+                difficulty = "Hard",
+                context = "Academic advising degree-audit graduation check.",
+                displayName = "Office of the Dean - Academic Advising",
+                senderAddress = "advising-audit@university-academics.org",
+                displayDomain = "university.edu",
+                rawHyperlinkUrl = "https://degreeworks.university-academics.org/audit/worksheet",
+                subjectLine = "DegreeWorks Audit: Elective Credit Discrepancy on Transcript",
+                emailBody = "Dear Student,\n\nDuring our mid-semester review of degree progression worksheets, the Academic Advising Office noted an unclassified technical elective credit on your current DegreeWorks audit.\n\nTo ensure this credit is properly mapped toward your major requirements prior to next term's enrollment, please review the highlighted course equivalency note on your advising worksheet.\n\nOffice of the Dean\nUndergraduate Academic Advising",
+                warningSigns = "Sender domain 'university-academics.org' and link host 'degreeworks.university-academics.org' do not belong to 'university.edu'.",
+                hasGrammaticalAnomalies = false,
+                hasDomainAnomaly = true,
+                attachmentName = "DegreeWorks_Credit_Worksheet.pdf.iso",
+                timePressureSeconds = 240f,
+                correctAction = "Report Phish",
+                correctiveFeedback = "This message reads like a helpful, routine note from Academic Advising, but both the domain ('university-academics.org') and the '.pdf.iso' disk-image attachment are malicious indicators."
+            });
 
-    // ============================================================
-    // S06 - Authority Bias - Legitimate - Medium
-    // ============================================================
-    masterScenarioPool.Add(new PhishingScenarioData
-    {
-        scenarioId = "S06",
-        classification = ThreatClassification.Legitimate,
-        biasType = CognitiveBiasType.AuthorityBias,
-        difficulty = "Medium",
-        context = "Genuine academic announcement from the Office of the Dean.",
-        displayName = "Office of the Dean",
-        senderAddress = "dean.office@university.edu",
-        displayDomain = "university.edu",
-        rawHyperlinkUrl = "https://university.edu/academics/review-meeting",
-        subjectLine = "Academic Review Meeting - Student Information",
-        emailBody = "Dear Student,\n\nThe Office of the Dean will be conducting an academic review meeting next week.\n\nStudents are requested to review the meeting information available on the official university academic portal.\n\nNo password or personal account information is required.\n\nIf you have questions regarding the meeting, please contact the Academic Office through the contact details listed on the official university website.\n\nOffice of the Dean\nUniversity",
-        warningSigns = "None.",
-        hasGrammaticalAnomalies = false,
-        hasDomainAnomaly = false,
-        attachmentName = "",
-        timePressureSeconds = 300f,
-        correctAction = "Ignore / Read Without Reporting",
-        correctiveFeedback = "This was a legitimate communication from the university. The sender and destination use the official university domain and no sensitive information is requested."
-    });
+            // ============================================================
+            // S06 - Authority Bias - Legitimate - Hard
+            // ============================================================
+            masterScenarioPool.Add(new PhishingScenarioData
+            {
+                scenarioId = "S06",
+                classification = ThreatClassification.Legitimate,
+                biasType = CognitiveBiasType.AuthorityBias,
+                difficulty = "Hard",
+                context = "Mandatory academic integrity & conduct policy attestation.",
+                displayName = "Office of the Provost & Academic Affairs",
+                senderAddress = "provost-compliance@university.edu",
+                displayDomain = "university.edu",
+                rawHyperlinkUrl = "https://provost.university.edu/policies/ai-academic-integrity-2026",
+                subjectLine = "MANDATORY: Updated Generative AI & Academic Integrity Policy Attestation",
+                emailBody = "Dear Students and Faculty,\n\nEffective this semester, the University Senate has ratified updated guidelines governing the permissible use of Generative AI tools in coursework and laboratory submissions.\n\nAll enrolled students are required to review the updated Honor Code addendum and complete the electronic policy acknowledgment via the Provost Portal prior to midterm examinations.\n\nOffice of the Provost\nUniversity Administration",
+                warningSigns = "None. Although it demands mandatory action before midterms, the sender (@university.edu), Return-Path, and link host (provost.university.edu) are completely legitimate.",
+                hasGrammaticalAnomalies = false,
+                hasDomainAnomaly = false,
+                attachmentName = "Honor_Code_Addendum_2026.pdf",
+                timePressureSeconds = 240f,
+                correctAction = "Ignore / Read Without Reporting",
+                correctiveFeedback = "Mandatory compliance emails from university leadership are common in real life. Because 'provost.university.edu' and SPF/DKIM alignment are verified on the telemetry monitor, reporting this as phishing is a false alarm."
+            });
 
-    // ============================================================
-    // S07 - Familiarity/Trust - Deceptive Phish - Easy
-    // ============================================================
-    masterScenarioPool.Add(new PhishingScenarioData
-    {
-        scenarioId = "S07",
-        classification = ThreatClassification.DeceptivePhish,
-        biasType = CognitiveBiasType.FamiliarityTrust,
-        difficulty = "Easy",
-        context = "Email impersonates a familiar technology vendor.",
-        displayName = "Microsoft 365 Support",
-        senderAddress = "support@microsoft-365-security-help.com",
-        displayDomain = "microsoft.com",
-        rawHyperlinkUrl = "https://microsoft-365-security-help.com/verify",
-        subjectLine = "Microsoft 365 Account Security Notification",
-        emailBody = "Dear User,\n\nWe detected unusual activity associated with your Microsoft 365 account.\n\nPlease review your account security information using the link below to ensure that your account remains active.\n\nIf you do not recognize the recent activity, we recommend completing the security verification as soon as possible.\n\nMicrosoft 365 Support",
-        warningSigns = "Sender domain does not match legitimate Microsoft domain; familiar branding; unfamiliar verification link.",
-        hasGrammaticalAnomalies = false,
-        hasDomainAnomaly = true,
-        attachmentName = "",
-        timePressureSeconds = 300f,
-        correctAction = "Report Phish",
-        correctiveFeedback = "The message exploits familiarity with a commonly used technology service. Familiarity should not replace checking the actual sender and destination domains."
-    });
+            // ============================================================
+            // S07 - Familiarity/Trust - Deceptive Phish - Hard
+            // ============================================================
+            masterScenarioPool.Add(new PhishingScenarioData
+            {
+                scenarioId = "S07",
+                classification = ThreatClassification.DeceptivePhish,
+                biasType = CognitiveBiasType.FamiliarityTrust,
+                difficulty = "Hard",
+                context = "Shared OneDrive lab project document collaboration invite.",
+                displayName = "Microsoft SharePoint / OneDrive",
+                senderAddress = "no-reply@sharepoint-university-files.com",
+                displayDomain = "microsoft.com",
+                rawHyperlinkUrl = "https://university-my.sharepoint-university-files.com/:w:/g/personal/lab_report",
+                subjectLine = "Arnav Jain shared 'IVRAR_Final_Lab_Submission_v3.docx' with you",
+                emailBody = "Arnav Jain has invited you to edit a document on Microsoft OneDrive for Business.\n\nDocument: IVRAR_Final_Lab_Submission_v3.docx\nNote from sender: 'Hey, I updated the telemetry section and results table—please check your part before we submit tonight.'\n\nThis link will work only for the direct recipients of this message.\n\nMicrosoft SharePoint Online",
+                warningSigns = "Realistic peer-collaboration lure using a classmate's name and SharePoint URL structure, but hosted on 'sharepoint-university-files.com' instead of 'sharepoint.com'.",
+                hasGrammaticalAnomalies = false,
+                hasDomainAnomaly = true,
+                attachmentName = "",
+                timePressureSeconds = 210f,
+                correctAction = "Report Phish",
+                correctiveFeedback = "Fake OneDrive/SharePoint collaboration notifications are the #1 real-world corporate and campus phishing template. Inspecting the target host shows 'sharepoint-university-files.com' rather than Microsoft's authentic 'sharepoint.com'."
+            });
 
-    // ============================================================
-    // S08 - Familiarity/Trust - Deceptive Phish - Hard
-    // ============================================================
-    masterScenarioPool.Add(new PhishingScenarioData
-    {
-        scenarioId = "S08",
-        classification = ThreatClassification.DeceptivePhish,
-        biasType = CognitiveBiasType.FamiliarityTrust,
-        difficulty = "Hard",
-        context = "Email impersonates the university student portal using deceptive domain structure.",
-        displayName = "University Student Portal",
-        senderAddress = "studentportal@university.edu.accounts-review.com",
-        displayDomain = "university.edu",
-        rawHyperlinkUrl = "https://university.edu.accounts-review.com/student/login",
-        subjectLine = "New Notification Available in Your Student Portal",
-        emailBody = "Dear Student,\n\nA new notification has been added to your student portal regarding your account.\n\nPlease sign in to your student portal using the link below to review the notification.\n\nIf you have recently accessed your account, no further action may be required.\n\nUniversity Student Portal",
-        warningSigns = "University name appears inside a deceptive domain; destination is not the official university domain; familiar branding; sign-in request.",
-        hasGrammaticalAnomalies = false,
-        hasDomainAnomaly = true,
-        attachmentName = "",
-        timePressureSeconds = 600f,
-        correctAction = "Report Phish",
-        correctiveFeedback = "The message exploits familiarity with the university portal. The important distinction is between a domain containing the university name and the university's actual official domain."
-    });
+            // ============================================================
+            // S08 - Familiarity/Trust - Deceptive Phish - Hard
+            // ============================================================
+            masterScenarioPool.Add(new PhishingScenarioData
+            {
+                scenarioId = "S08",
+                classification = ThreatClassification.DeceptivePhish,
+                biasType = CognitiveBiasType.FamiliarityTrust,
+                difficulty = "Hard",
+                context = "Subdomain-spoofed campus student portal grade notification.",
+                displayName = "University Student Information System",
+                senderAddress = "sis-noreply@university.edu.student-portal-auth.com",
+                displayDomain = "university.edu",
+                rawHyperlinkUrl = "https://sis.university.edu.student-portal-auth.com/grades/midterm",
+                subjectLine = "Grade Roster Update: Midterm Assessment Posted for CS-408",
+                emailBody = "Dear Student,\n\nAn instructor has posted or updated a grade item for your enrolled course section (CS-408: Immersive Virtual Reality Systems).\n\nFor FERPA privacy compliance, numerical scores and grader comments are not included in email bodies. You may view your grade breakdown on the Student Information System.\n\nOffice of the Registrar",
+                warningSigns = "Cites FERPA privacy rules to look trustworthy, while placing 'university.edu' as a left-hand subdomain prefix of the attacker's root domain 'student-portal-auth.com'.",
+                hasGrammaticalAnomalies = false,
+                hasDomainAnomaly = true,
+                attachmentName = "",
+                timePressureSeconds = 240f,
+                correctAction = "Report Phish",
+                correctiveFeedback = "Attackers frequently cite privacy laws like FERPA or GDPR to explain why you must click a link. Looking at the DNS telemetry reveals the actual root domain is 'student-portal-auth.com'."
+            });
 
-    // ============================================================
-    // S09 - Familiarity/Trust - Legitimate - Hard
-    // ============================================================
-    masterScenarioPool.Add(new PhishingScenarioData
-    {
-        scenarioId = "S09",
-        classification = ThreatClassification.Legitimate,
-        biasType = CognitiveBiasType.FamiliarityTrust,
-        difficulty = "Hard",
-        context = "Genuine student portal notification.",
-        displayName = "University Student Portal",
-        senderAddress = "studentportal@university.edu",
-        displayDomain = "university.edu",
-        rawHyperlinkUrl = "https://university.edu/student-portal/timetable",
-        subjectLine = "Your Academic Timetable Has Been Updated",
-        emailBody = "Dear Student,\n\nYour academic timetable has been updated for the upcoming academic period.\n\nPlease sign in through the official University Student Portal to view your latest timetable.\n\nFor security, the University will never ask you to provide your password by email.\n\nUniversity Student Portal",
-        warningSigns = "None.",
-        hasGrammaticalAnomalies = false,
-        hasDomainAnomaly = false,
-        attachmentName = "",
-        timePressureSeconds = 600f,
-        correctAction = "Ignore / Read Without Reporting",
-        correctiveFeedback = "This was a legitimate university notification. The sender uses the official university domain and the destination is hosted on the same official domain."
-    });
+            // ============================================================
+            // S09 - Familiarity/Trust - Legitimate - Hard
+            // ============================================================
+            masterScenarioPool.Add(new PhishingScenarioData
+            {
+                scenarioId = "S09",
+                classification = ThreatClassification.Legitimate,
+                biasType = CognitiveBiasType.FamiliarityTrust,
+                difficulty = "Hard",
+                context = "Genuine Student Portal login alert from new browser session.",
+                displayName = "University Identity Security",
+                senderAddress = "no-reply-iam@university.edu",
+                displayDomain = "university.edu",
+                rawHyperlinkUrl = "https://iam.university.edu/security/recent-activity",
+                subjectLine = "Security Alert: New Sign-In to Your University Account on Windows 11",
+                emailBody = "Dear Student,\n\nWe detected a new sign-in to your University Single Sign-On account:\n\nDevice: Windows 11 Desktop (Chrome 130.0)\nLocation: Campus Lab Subnet (10.42.118.14)\nTime: Today at 14:12 IST\n\nIf this was you, you can safely disregard this email. If you do not recognize this sign-in, please review your active sessions and rotate your password immediately via the Identity Portal.\n\nUniversity Identity Security",
+                warningSigns = "None. Although 'Security Alert: New Sign-In' looks like a classic phishing subject line, the headers and URL ('iam.university.edu') are 100% genuine.",
+                hasGrammaticalAnomalies = false,
+                hasDomainAnomaly = false,
+                attachmentName = "",
+                timePressureSeconds = 240f,
+                correctAction = "Ignore / Read Without Reporting",
+                correctiveFeedback = "Legitimate security alerts often look scary! Instead of guessing from the subject line, checking the telemetry monitor confirms that 'no-reply-iam@university.edu' and 'iam.university.edu' are authentic."
+            });
 
-    // ============================================================
-    // S10 - Social Proof/Reward - Deceptive Phish - Medium
-    // ============================================================
-    masterScenarioPool.Add(new PhishingScenarioData
-    {
-        scenarioId = "S10",
-        classification = ThreatClassification.DeceptivePhish,
-        biasType = CognitiveBiasType.SocialProofReward,
-        difficulty = "Medium",
-        context = "Email claims the student's department has been selected for a recognition program.",
-        displayName = "University Student Engagement Team",
-        senderAddress = "student-engagement@university-rewards.com",
-        displayDomain = "university.edu",
-        rawHyperlinkUrl = "https://university-rewards.com/student-verification",
-        subjectLine = "Your Department Has Been Selected - Student Recognition Program",
-        emailBody = "Dear Student,\n\nYour department has been selected to participate in this year's University Student Recognition Program.\n\nStudents in participating departments are being asked to complete a short verification form to confirm their eligibility.\n\nSeveral students in your department have already completed the process.\n\nPlease complete your verification using the link below so that your participation can be recorded.\n\nStudent Engagement Team\nUniversity",
-        warningSigns = "Sender domain mismatch; social proof claim; potential reward; unfamiliar verification link.",
-        hasGrammaticalAnomalies = false,
-        hasDomainAnomaly = true,
-        attachmentName = "",
-        timePressureSeconds = 300f,
-        correctAction = "Report Phish",
-        correctiveFeedback = "The message uses social proof and a potential reward to create trust. These cues should not replace verification of the sender and destination domain."
-    });
+            // ============================================================
+            // S10 - Social Proof/Reward - Deceptive Phish - Hard
+            // ============================================================
+            masterScenarioPool.Add(new PhishingScenarioData
+            {
+                scenarioId = "S10",
+                classification = ThreatClassification.DeceptivePhish,
+                biasType = CognitiveBiasType.SocialProofReward,
+                difficulty = "Hard",
+                context = "Departmental research stipend & travel grant reimbursement lure.",
+                displayName = "Engineering Research & Travel Grants",
+                senderAddress = "grants-disbursement@univ-engineering-funding.org",
+                displayDomain = "university.edu",
+                rawHyperlinkUrl = "https://portal.univ-engineering-funding.org/stipend/direct-deposit",
+                subjectLine = "Fall Undergraduate Research & Lab Project Stipend Allocation",
+                emailBody = "Dear Student,\n\nFollowing faculty nominations from the Department of Computer Engineering, your project group has been approved for the Fall Lab Equipment & Conference Micro-Grant ($350.00).\n\nMost nominated project teams in your cohort have already confirmed their ACH direct-deposit routing details. Please verify your student banking profile by Friday so funds are included in this month's batch.\n\nSchool of Engineering Finance Office",
+                warningSigns = "Realistic academic micro-grant amount ($350) and peer conformity cue, but sent from external domain 'univ-engineering-funding.org'.",
+                hasGrammaticalAnomalies = false,
+                hasDomainAnomaly = true,
+                attachmentName = "Grant_Award_Voucher_2026.pdf.lnk",
+                timePressureSeconds = 210f,
+                correctAction = "Report Phish",
+                correctiveFeedback = "Modest, believable grant amounts ($350) are much harder to spot than million-dollar lottery scams. However, the external domain 'univ-engineering-funding.org' and shortcut attachment ('.pdf.lnk') expose the attack."
+            });
 
-    // ============================================================
-    // S11 - Social Proof/Reward - Deceptive Phish - Hard
-    // ============================================================
-    masterScenarioPool.Add(new PhishingScenarioData
-    {
-        scenarioId = "S11",
-        classification = ThreatClassification.DeceptivePhish,
-        biasType = CognitiveBiasType.SocialProofReward,
-        difficulty = "Hard",
-        context = "Email claims most students have completed a mandatory cybersecurity compliance check.",
-        displayName = "University Compliance Office",
-        senderAddress = "compliance@university-compliance.org",
-        displayDomain = "university.edu",
-        rawHyperlinkUrl = "https://university-compliance.org/verification",
-        subjectLine = "Student Compliance Check - Action Required",
-        emailBody = "Dear Student,\n\nAs part of the current university cybersecurity compliance process, students in your department are being asked to complete a short account verification check.\n\nThe majority of students in your department have already completed the verification.\n\nPlease complete the remaining verification step using the link below so that your compliance status can be updated.\n\nUniversity Compliance Office",
-        warningSigns = "Sender domain mismatch; majority-completed claim; compliance pressure; unfamiliar destination; conformity pressure.",
-        hasGrammaticalAnomalies = false,
-        hasDomainAnomaly = true,
-        attachmentName = "",
-        timePressureSeconds = 600f,
-        correctAction = "Report Phish",
-        correctiveFeedback = "The message uses social proof and compliance pressure. The claimed participation of others does not establish that the message is genuine."
-    });
+            // ============================================================
+            // S11 - Social Proof/Reward - Deceptive Phish - Hard
+            // ============================================================
+            masterScenarioPool.Add(new PhishingScenarioData
+            {
+                scenarioId = "S11",
+                classification = ThreatClassification.DeceptivePhish,
+                biasType = CognitiveBiasType.SocialProofReward,
+                difficulty = "Hard",
+                context = "Campus software license renewal for MATLAB & JetBrains.",
+                displayName = "Campus Academic Software Licensing",
+                senderAddress = "software-licensing@university-academic-tools.com",
+                displayDomain = "university.edu",
+                rawHyperlinkUrl = "https://licenses.university-academic-tools.com/renew-seat",
+                subjectLine = "Annual Student Seat Renewal: MATLAB, JetBrains & Unity Pro Licenses",
+                emailBody = "Dear Student,\n\nOur annual campus site-license audit shows that your student developer entitlements for MATLAB, JetBrains IDEs, and Unity Education are due for seat re-validation.\n\nOver 90% of engineering students have already renewed their active seats for the 2026–2027 academic year. Confirm your institutional enrollment status below to keep your academic licenses active.\n\nAcademic Software Distribution",
+                warningSigns = "Targets engineering students with tools they actually use (MATLAB, JetBrains, Unity), but uses external domain 'university-academic-tools.com'.",
+                hasGrammaticalAnomalies = false,
+                hasDomainAnomaly = true,
+                attachmentName = "",
+                timePressureSeconds = 240f,
+                correctAction = "Report Phish",
+                correctiveFeedback = "Tailored lures referencing software you use every day create strong familiarity trust. Always inspect the SMTP From-Domain and Target Host ('university-academic-tools.com' vs 'university.edu')."
+            });
 
-    // ============================================================
-    // S12 - Social Proof/Reward - Legitimate - Medium
-    // ============================================================
-    masterScenarioPool.Add(new PhishingScenarioData
-    {
-        scenarioId = "S12",
-        classification = ThreatClassification.Legitimate,
-        biasType = CognitiveBiasType.SocialProofReward,
-        difficulty = "Medium",
-        context = "Genuine university student recognition announcement.",
-        displayName = "University Student Engagement Office",
-        senderAddress = "studentengagement@university.edu",
-        displayDomain = "university.edu",
-        rawHyperlinkUrl = "https://university.edu/student-engagement/recognition",
-        subjectLine = "Student Recognition Program - Participation Information",
-        emailBody = "Dear Student,\n\nThe University Student Engagement Office is pleased to announce this semester's Student Recognition Program.\n\nStudents may review the program information and participation requirements through the official university student portal.\n\nParticipation is optional. No password or sensitive account information is requested by email.\n\nFor full details, please visit the Student Engagement section of the official university website.\n\nUniversity Student Engagement Office",
-        warningSigns = "None.",
-        hasGrammaticalAnomalies = false,
-        hasDomainAnomaly = false,
-        attachmentName = "",
-        timePressureSeconds = 600f,
-        correctAction = "Ignore / Read Without Reporting",
-        correctiveFeedback = "This was a legitimate university announcement. The official university domain can be independently verified and no sensitive information is requested."
-    });
+            // ============================================================
+            // S12 - Social Proof/Reward - Legitimate - Hard
+            // ============================================================
+            masterScenarioPool.Add(new PhishingScenarioData
+            {
+                scenarioId = "S12",
+                classification = ThreatClassification.Legitimate,
+                biasType = CognitiveBiasType.SocialProofReward,
+                difficulty = "Hard",
+                context = "Genuine AWS / GitHub Student Developer Pack campus credit allocation.",
+                displayName = "University Cloud & Developer Program",
+                senderAddress = "cloud-education@university.edu",
+                displayDomain = "university.edu",
+                rawHyperlinkUrl = "https://devportal.university.edu/cloud-credits/redeem",
+                subjectLine = "Action Needed: Claim Your $100 AWS & Azure Course Lab Cloud Credits",
+                emailBody = "Dear Computer Science & Engineering Student,\n\nIn partnership with our academic cloud sponsors, the Department has provisioned $100.00 in AWS and Azure lab credits for students enrolled in upper-division systems and VR courses.\n\nOver 400 students in your department have already activated their sandbox vouchers this week. Sign in via the official University Developer Portal before the add/drop deadline to bind the credit code to your lab account.\n\nDepartment of Computer Science",
+                warningSigns = "None. Although it offers '$100 credits' and mentions '400 students have activated', the sender (@university.edu) and host (devportal.university.edu) are verified internal university systems.",
+                hasGrammaticalAnomalies = false,
+                hasDomainAnomaly = false,
+                attachmentName = "",
+                timePressureSeconds = 240f,
+                correctAction = "Ignore / Read Without Reporting",
+                correctiveFeedback = "Not every email offering credits or mentioning peer participation is a phish! Because the sender ('cloud-education@university.edu'), SPF/DKIM alignment, and host ('devportal.university.edu') are genuine, this is a safe institutional email."
+            });
 
             // ============================================================
             // S13 - Authority Bias - Spear Phish Targeted - Hard
@@ -428,20 +428,20 @@ public struct PhishingScenarioData
                 classification = ThreatClassification.SpearPhishTargeted,
                 biasType = CognitiveBiasType.AuthorityBias,
                 difficulty = "Hard",
-                context = "Executive CFO urgent wire authorization override targeting accounting personnel.",
-                displayName = "Victoria Sterling - Chief Financial Officer",
-                senderAddress = "v.sterling@corp-finance-executives.com",
-                displayDomain = "corp-global.com",
-                rawHyperlinkUrl = "https://corp-finance-executives.com/portal/wire-release",
-                subjectLine = "STRICTLY CONFIDENTIAL: Immediate Acquisition Wire Authorization",
-                emailBody = "Good afternoon,\n\nUnder NDA, we are closing project Apex ahead of schedule today. The escrow deposit requires your immediate sign-off on the wire release form.\n\nDue to audit restrictions, do not process this through standard ticketing. Review and authorize the schedule via our executive escrow portal below within 45 minutes.\n\nVictoria Sterling\nChief Financial Officer",
-                warningSigns = "Lookalike external executive domain (corp-finance-executives.com); bypass of formal ticketing policy; extreme authority pressure and secrecy.",
+                context = "Sponsored research lab invoice sign-off targeting project leads.",
+                displayName = "Sponsored Projects & Grant Accounting",
+                senderAddress = "sponsored-grants@univ-finance-office.org",
+                displayDomain = "university.edu",
+                rawHyperlinkUrl = "https://procurement.univ-finance-office.org/voucher/approve-po",
+                subjectLine = "PO #84920 Reconciliation: Lab Hardware Vendor Invoice Approval",
+                emailBody = "Good afternoon,\n\nOur Sponsored Projects accounting desk is closing the monthly ledger for your department's VR laboratory equipment grant. Vendor invoice #INV-9042 (Meta Quest Enterprise Peripherals) requires PI or student project lead verification.\n\nPlease review the line-item packing slip and sign off on the procurement voucher today so vendor payment is not delayed.\n\nSponsored Projects Accounting",
+                warningSigns = "Lookalike external domain (univ-finance-office.org); disguised executable attachment (.pdf.exe); realistic lab hardware context.",
                 hasGrammaticalAnomalies = false,
                 hasDomainAnomaly = true,
-                attachmentName = "Wire_Schedule_Apex_Signed.pdf.exe",
-                timePressureSeconds = 180f,
+                attachmentName = "Vendor_Invoice_PackingSlip_9042.pdf.exe",
+                timePressureSeconds = 210f,
                 correctAction = "Report Phish",
-                correctiveFeedback = "Executive impersonations exploit authority and artificial secrecy to bypass standard financial validation controls. Always independently verify wire instructions via out-of-band communication."
+                correctiveFeedback = "Invoice and procurement lures targeting specific lab equipment you work with are classic spear-phishing attacks. Check the external domain ('univ-finance-office.org') and '.pdf.exe' attachment."
             });
 
             // ============================================================
@@ -454,94 +454,94 @@ public struct PhishingScenarioData
                 biasType = CognitiveBiasType.UrgencyScarcity,
                 difficulty = "Hard",
                 context = "Homograph domain attack impersonating Microsoft 365 identity verification.",
-                displayName = "Microsoft 365 Security Operations",
+                displayName = "Microsoft 365 Identity Protection",
                 senderAddress = "security-noreply@rnicrosoft-cloud.com",
                 displayDomain = "microsoft.com",
-                rawHyperlinkUrl = "https://rnicrosoft-cloud.com/auth/mfa-restore",
-                subjectLine = "Critical Security Alert: Suspicious MFA Token Revocation Detected",
-                emailBody = "Dear Subscriber,\n\nMultiple anomalous login attempts from foreign IP ranges were blocked on your Microsoft 365 tenant. Your Multi-Factor Authentication session token is scheduled for permanent revocation in 30 minutes.\n\nTo prevent workforce disruption and maintain access to email and SharePoint, re-authenticate your cryptographic identity profile immediately.\n\nMicrosoft Security Engineering",
-                warningSigns = "Subtle visual homograph spoofing ('rn' resembles 'm' in standard sans-serif typography); non-Microsoft domain (rnicrosoft-cloud.com); acute 30-minute deadline.",
+                rawHyperlinkUrl = "https://login.rnicrosoft-cloud.com/common/oauth2/reauth",
+                subjectLine = "Conditional Access Notice: Refresh Your Campus Microsoft 365 Session",
+                emailBody = "Hello,\n\nYour organization's Conditional Access policy requires periodic re-authentication for devices accessing Exchange Online and Teams from university campus networks.\n\nYour current session token expires today at 18:00. To prevent interruption to your Outlook mail client and OneDrive sync, please refresh your session credentials.\n\nMicrosoft Entra ID Operations",
+                warningSigns = "Subtle visual homograph spoofing ('rn' resembles 'm' in 'rnicrosoft-cloud.com'); calm corporate language that mimics routine Entra ID prompts.",
                 hasGrammaticalAnomalies = false,
                 hasDomainAnomaly = true,
                 attachmentName = "",
                 timePressureSeconds = 180f,
                 correctAction = "Report Phish",
-                correctiveFeedback = "Homograph and typo-squatting attacks rely on hasty scanning of the sender domain. Carefully inspect letterforms like 'rn' vs 'm' and verify certificate root authorities."
+                correctiveFeedback = "Homograph attacks ('rnicrosoft' instead of 'microsoft') combined with calm, non-panicky language are extremely deceptive. Always read the character-by-character host on the forensic telemetry screen."
             });
 
             // ============================================================
-            // S15 - Familiarity/Trust - Spear Phish Targeted - Medium
+            // S15 - Familiarity/Trust - Spear Phish Targeted - Hard
             // ============================================================
             masterScenarioPool.Add(new PhishingScenarioData
             {
                 scenarioId = "S15",
                 classification = ThreatClassification.SpearPhishTargeted,
                 biasType = CognitiveBiasType.FamiliarityTrust,
-                difficulty = "Medium",
-                context = "Targeted software developer lure impersonating GitHub Enterprise SSH audit.",
-                displayName = "GitHub Enterprise Security",
-                senderAddress = "audit-bot@github-enterprise-compliance.io",
+                difficulty = "Hard",
+                context = "Targeted software developer lure impersonating GitHub repository invite.",
+                displayName = "GitHub Classroom & Enterprise",
+                senderAddress = "noreply@github-classroom-portal.io",
                 displayDomain = "github.com",
-                rawHyperlinkUrl = "https://github-enterprise-compliance.io/keys/renew",
-                subjectLine = "Action Required: Deprecated SSH Key Audit for Internal Organization",
-                emailBody = "Hello Developer,\n\nAs part of our Q4 Cryptographic Key Hygiene audit, older ED25519 and RSA keys must be re-certified against our organization's updated security baseline.\n\nYour active SSH signing key has been flagged for deprecation. Please review and rotate your public credentials through the compliance portal to avoid repository push restrictions.\n\nGitHub Enterprise Operations",
-                warningSigns = "Domain github-enterprise-compliance.io is an external registration; GitHub uses internal organizational settings for SSH key lifecycle management.",
+                rawHyperlinkUrl = "https://github.com.github-classroom-portal.io/orgs/ivrar-2026/invitation",
+                subjectLine = "[GitHub] Invitation to join organization @nmims-mpstme-ivrar-2026",
+                emailBody = "Hello Developer,\n\nYour course instructor has invited your account to join the @nmims-mpstme-ivrar-2026 organization on GitHub Classroom for final project repository grading.\n\nPlease accept the organization invitation and authorize the grading workflow token within 48 hours so your branch commits are linked to your student ID.\n\nGitHub Education Team",
+                warningSigns = "Uses the exact name of your course repository, but the sender and target host belong to 'github-classroom-portal.io' rather than 'github.com'.",
                 hasGrammaticalAnomalies = false,
                 hasDomainAnomaly = true,
                 attachmentName = "",
-                timePressureSeconds = 300f,
+                timePressureSeconds = 240f,
                 correctAction = "Report Phish",
-                correctiveFeedback = "Developers are frequently targeted with supply-chain and credential audit lures. Genuine repository platforms notify users in-app or via authenticated organizational dashboards."
+                correctiveFeedback = "Spear-phishing often scrapes real project or repository names to build instant trust. Checking the telemetry monitor reveals 'github-classroom-portal.io' is an external impostor domain."
             });
 
             // ============================================================
-            // S16 - Urgency/Scarcity - Legitimate - Medium
+            // S16 - Urgency/Scarcity - Legitimate - Hard
             // ============================================================
             masterScenarioPool.Add(new PhishingScenarioData
             {
                 scenarioId = "S16",
                 classification = ThreatClassification.Legitimate,
                 biasType = CognitiveBiasType.UrgencyScarcity,
-                difficulty = "Medium",
-                context = "Legitimate campus IT infrastructure maintenance notification.",
-                displayName = "Campus Information Technology Services",
-                senderAddress = "it-announcements@university.edu",
+                difficulty = "Hard",
+                context = "Legitimate urgent SSL VPN certificate update from Campus IT.",
+                displayName = "Campus Network & Firewall Operations",
+                senderAddress = "netops@university.edu",
                 displayDomain = "university.edu",
-                rawHyperlinkUrl = "https://it.university.edu/outage-calendar/q4-maintenance",
-                subjectLine = "NOTICE: Emergency Core Switch Maintenance - Saturday 02:00 UTC",
-                emailBody = "Dear University Community,\n\nNetwork Operations will perform urgent firmware updates on the campus gateway routers this Saturday from 02:00 to 04:00 UTC. Campus WiFi, VPN, and on-premises portal services will be momentarily disrupted.\n\nNo action is required on your computer or account. Cloud-hosted email and LMS will remain accessible.\n\nFor real-time service status, bookmark our central status page.\n\nCampus IT Infrastructure Operations",
-                warningSigns = "None.",
+                rawHyperlinkUrl = "https://vpn.university.edu/client-profile/root-ca-2026",
+                subjectLine = "URGENT: Palo Alto GlobalProtect VPN Root Certificate Expiring Tonight",
+                emailBody = "ATTENTION OFF-CAMPUS & LAB USERS:\n\nThe root TLS certificate for the Campus GlobalProtect VPN gateway expires tonight at 23:59 UTC. Users attempting to connect to internal lab servers or license managers without the updated profile will receive a certificate validation error.\n\nIf you use GlobalProtect VPN, please refresh your client connection profile via the official VPN portal.\n\nCampus Network Operations",
+                warningSigns = "None. Despite the 'URGENT' subject line and technical certificate warning, the sender ('netops@university.edu') and host ('vpn.university.edu') are verified internal university endpoints.",
                 hasGrammaticalAnomalies = false,
                 hasDomainAnomaly = false,
                 attachmentName = "",
-                timePressureSeconds = 300f,
+                timePressureSeconds = 240f,
                 correctAction = "Ignore / Read Without Reporting",
-                correctiveFeedback = "This is a legitimate maintenance announcement. The message originates from the valid university domain, makes no credential or software download requests, and provides transparent advisory information."
+                correctiveFeedback = "Urgent technical alerts about expiring VPN certificates happen in real enterprises. Because the sender domain ('university.edu'), SPF/DKIM, and host ('vpn.university.edu') align cleanly, this is a legitimate IT notice."
             });
 
             // ============================================================
-            // S17 - Social Proof/Reward - Deceptive Phish - Easy
+            // S17 - Social Proof/Reward - Deceptive Phish - Hard
             // ============================================================
             masterScenarioPool.Add(new PhishingScenarioData
             {
                 scenarioId = "S17",
                 classification = ThreatClassification.DeceptivePhish,
                 biasType = CognitiveBiasType.SocialProofReward,
-                difficulty = "Easy",
-                context = "Corporate wellness spot bonus lure offering Amazon gift cards.",
-                displayName = "Corporate Employee Perks Program",
-                senderAddress = "wellness-rewards@employee-appreciation-portal.net",
-                displayDomain = "company.com",
-                rawHyperlinkUrl = "https://employee-appreciation-portal.net/claim?bonus=250",
-                subjectLine = "Congratulations! Claim Your $250 Quarterly Wellness Allowance",
-                emailBody = "Dear Team Member,\n\nIn recognition of outstanding organizational performance this quarter, Executive Leadership has authorized an exclusive $250 Wellness Allowance for all full-time staff.\n\nOver 84% of your departmental colleagues have already redeemed their vouchers. Select your digital gift card preference before the registration allotment is exhausted.\n\nPeople & Culture Rewards",
-                warningSigns = "Sender domain is not affiliated with the corporation; excessive social proof manipulation ('84% redeemed'); scarcity pressure ('allotment exhausted').",
+                difficulty = "Hard",
+                context = "Campus dining & bookstore flex-dollar refund lure.",
+                displayName = "Campus Card & Auxiliaries Office",
+                senderAddress = "campuscard@univ-auxiliary-services.net",
+                displayDomain = "university.edu",
+                rawHyperlinkUrl = "https://onecard.univ-auxiliary-services.net/rollover-refund",
+                subjectLine = "End-of-Term Campus OneCard Flex Balance Rollover / Refund",
+                emailBody = "Dear Student,\n\nUnspent Campus OneCard dining and bookstore flex balances ($42.50 remaining on your card) do not automatically carry over to next semester unless a rollover election is submitted.\n\nMost students in your residence hall have already selected direct tuition credit or ACH refund. Submit your rollover preference before the end of the week.\n\nCampus Card Services",
+                warningSigns = "Uses a specific, small dollar amount ($42.50) to feel realistic, but routes to external domain 'univ-auxiliary-services.net'.",
                 hasGrammaticalAnomalies = false,
                 hasDomainAnomaly = true,
                 attachmentName = "",
                 timePressureSeconds = 180f,
                 correctAction = "Report Phish",
-                correctiveFeedback = "Social proof and unprompted financial bonuses are prominent phishing lures. Legitimate organizational bonuses are delivered through verified payroll systems, never via external claim portals."
+                correctiveFeedback = "Attackers use specific small numbers like '$42.50' instead of round numbers to make financial lures believable. Always check the domain telemetry ('univ-auxiliary-services.net' != 'university.edu')."
             });
 
             // ============================================================
@@ -553,70 +553,70 @@ public struct PhishingScenarioData
                 classification = ThreatClassification.SpearPhishTargeted,
                 biasType = CognitiveBiasType.AuthorityBias,
                 difficulty = "Hard",
-                context = "Impersonation of corporate legal counsel with malicious archive attachment.",
-                displayName = "Baker & Vance LLP - External Legal Counsel",
-                senderAddress = "litigation-service@bakervance-counsel.org",
-                displayDomain = "bakervance.com",
-                rawHyperlinkUrl = "https://bakervance-counsel.org/secure-docs/subpoena-docket",
-                subjectLine = "LEGAL NOTICE: Formal Subpoena for Deposition & Document Preservation",
-                emailBody = "RE: United States District Court Case #2026-CV-08914\n\nPlease review the enclosed formal subpoena requiring document preservation concerning current vendor procurement disputes. As a material witness, you are required to acknowledge receipt within 72 hours.\n\nAccess the court transcript docket via the link below or inspect the attached encrypted legal package.\n\nBaker & Vance LLP\nLitigation Practice Group",
-                warningSigns = "Domain mismatch (bakervance-counsel.org vs official legal firm domain); suspicious compressed attachment (.zip); legal intimidation designed to provoke impulsive compliance.",
+                context = "Campus network acceptable-use copyright / DMCA notice.",
+                displayName = "Office of General Counsel & IT Policy",
+                senderAddress = "policy-enforcement@university-legal-affairs.org",
+                displayDomain = "university.edu",
+                rawHyperlinkUrl = "https://compliance.university-legal-affairs.org/ticket/noc-8821",
+                subjectLine = "Network Policy Ticket #NOC-8821: Peer-to-Peer Traffic Flagged on MAC Address",
+                emailBody = "RE: Automated Acceptable Use Policy Alert (Ticket #NOC-8821)\n\nCampus network sensors logged anomalous outbound P2P / port-scanning traffic originating from a device registered to your student network credentials on eduroam.\n\nTo prevent automatic MAC-address quarantine, please review the packet summary log and confirm whether this device belongs to you within 24 hours.\n\nIT Policy & Legal Compliance",
+                warningSigns = "Domain mismatch ('university-legal-affairs.org' vs 'university.edu'); attached compressed archive (.zip); intimidating network quarantine threat.",
                 hasGrammaticalAnomalies = false,
                 hasDomainAnomaly = true,
-                attachmentName = "Court_Docket_Subpoena_Notice_2026.zip",
+                attachmentName = "Packet_Capture_Log_NOC8821.zip",
                 timePressureSeconds = 240f,
                 correctAction = "Report Phish",
-                correctiveFeedback = "Legal threats and court summons provoke strong anxiety, driving recipients to open malicious attachments. External legal inquiries must always be routed through your organization's internal General Counsel."
+                correctiveFeedback = "Fake network violation tickets provoke anxiety so students open malicious '.zip' archives without checking the sender domain ('university-legal-affairs.org')."
             });
 
             // ============================================================
-            // S19 - Familiarity/Trust - Legitimate - Easy
+            // S19 - Familiarity/Trust - Legitimate - Hard
             // ============================================================
             masterScenarioPool.Add(new PhishingScenarioData
             {
                 scenarioId = "S19",
                 classification = ThreatClassification.Legitimate,
                 biasType = CognitiveBiasType.FamiliarityTrust,
-                difficulty = "Easy",
-                context = "Authentic monthly electronic paystub notification from university payroll.",
-                displayName = "University Payroll Office",
-                senderAddress = "payroll-notifications@university.edu",
+                difficulty = "Hard",
+                context = "Authentic work-study & teaching assistant tax form W-2/1098-T notice.",
+                displayName = "University Payroll & Tax Compliance",
+                senderAddress = "payroll-tax@university.edu",
                 displayDomain = "university.edu",
-                rawHyperlinkUrl = "https://portal.university.edu/selfservice/paystubs",
-                subjectLine = "Monthly Pay Advice Statement Available - October 2026",
-                emailBody = "Dear Employee,\n\nYour electronic earnings statement for the October 2026 payroll cycle is now available for review in the Employee Self-Service portal.\n\nLog in directly to your verified university portal using your standard institutional credentials to review withholding and direct deposit distributions.\n\nUniversity Office of Payroll & Benefits",
-                warningSigns = "None.",
+                rawHyperlinkUrl = "https://hrportal.university.edu/selfservice/tax-forms",
+                subjectLine = "ACTION REQUIRED: Electronic Consent for Tuition 1098-T & Work-Study Tax Statements",
+                emailBody = "Dear Student / Student Employee,\n\nTo receive your annual Form 1098-T Tuition Statement and Work-Study earnings summary electronically rather than by postal mail, federal IRS regulations require an active electronic delivery consent on file.\n\nPlease sign in to the official Employee & Student Self-Service portal before the end of the month to verify your tax delivery preference and mailing address.\n\nUniversity Office of Payroll & Tax Compliance",
+                warningSigns = "None. Mentions IRS tax forms and 'ACTION REQUIRED', which often makes players suspicious, but the sender ('payroll-tax@university.edu') and host ('hrportal.university.edu') are 100% genuine.",
                 hasGrammaticalAnomalies = false,
                 hasDomainAnomaly = false,
                 attachmentName = "",
                 timePressureSeconds = 300f,
                 correctAction = "Ignore / Read Without Reporting",
-                correctiveFeedback = "This is a legitimate payroll notification. The sender and link point to the authentic institutional domain and advise logging in through the official portal."
+                correctiveFeedback = "Tax and 1098-T consent notices look serious, which causes many people to falsely report them as phishing. Checking the telemetry confirms 'payroll-tax@university.edu' and 'hrportal.university.edu' are authentic."
             });
 
             // ============================================================
-            // S20 - Urgency/Scarcity - Deceptive Phish - Medium
+            // S20 - Urgency/Scarcity - Deceptive Phish - Hard
             // ============================================================
             masterScenarioPool.Add(new PhishingScenarioData
             {
                 scenarioId = "S20",
                 classification = ThreatClassification.DeceptivePhish,
                 biasType = CognitiveBiasType.UrgencyScarcity,
-                difficulty = "Medium",
-                context = "Cloud file storage quota overflow threat with immediate deletion notice.",
-                displayName = "Enterprise Cloud Storage Team",
-                senderAddress = "storage-admin@onedrive-cloud-management.com",
-                displayDomain = "microsoft.com",
-                rawHyperlinkUrl = "https://onedrive-cloud-management.com/storage/upgrade",
-                subjectLine = "Storage Warning: Account at 99.8% Capacity - Files Scheduled for Purge",
-                emailBody = "ATTENTION: Your cloud storage pool has exceeded its allocated limit (49.9 GB of 50.0 GB utilized).\n\nIn accordance with tenant retention protocols, incoming emails and shared files will bounce, and pending uploads will be permanently purged within 48 hours.\n\nExpand your enterprise quota or clear archived data using the administrator console below.\n\nCloud Storage Operations",
-                warningSigns = "Domain onedrive-cloud-management.com is a third-party clone; threat of permanent data loss creates artificial urgency.",
+                difficulty = "Hard",
+                context = "Google Workspace / Campus Drive student storage cap enforcement.",
+                displayName = "University Cloud Storage Administration",
+                senderAddress = "storage-lifecycle@univ-cloud-quota.com",
+                displayDomain = "university.edu",
+                rawHyperlinkUrl = "https://drive.university.edu.univ-cloud-quota.com/retention/archive",
+                subjectLine = "Campus Cloud Policy: Student Drive Quota Reduction (15 GB Cap)",
+                emailBody = "Dear Student,\n\nUnder the updated education licensing tier, individual student cloud storage allocations are transitioning to a strict 15.0 GB baseline cap next Monday.\n\nYour account currently utilizes 18.4 GB across shared course folders and project backups. Please use the Storage Retention Manager below to mark which project directories should be exempted from automated archiving.\n\nCloud Infrastructure Services",
+                warningSigns = "Uses subdomain spoofing ('drive.university.edu.univ-cloud-quota.com') where the actual registered host is 'univ-cloud-quota.com'.",
                 hasGrammaticalAnomalies = false,
                 hasDomainAnomaly = true,
                 attachmentName = "",
                 timePressureSeconds = 180f,
                 correctAction = "Report Phish",
-                correctiveFeedback = "Storage limit warnings frequently induce panic about lost work. Always check storage quotas directly inside your cloud app settings rather than through email links."
+                correctiveFeedback = "Real universities have been reducing cloud storage quotas recently, making this lure very believable. However, the target host ('univ-cloud-quota.com') is an external phishing domain."
             });
 
             // ============================================================
@@ -633,140 +633,140 @@ public struct PhishingScenarioData
                 senderAddress = "registration-desk@ieee-tvcg-symposium-2026.org",
                 displayDomain = "ieee.org",
                 rawHyperlinkUrl = "https://ieee-tvcg-symposium-2026.org/authors/camera-ready",
-                subjectLine = "Paper Acceptance Notification: Camera-Ready Submission & Early Registration",
-                emailBody = "Dear Author,\n\nWe are delighted to inform you that your manuscript has been accepted for oral presentation at the upcoming IEEE TVCG Virtual Reality Symposium.\n\nTo ensure inclusion in the IEEE Xplore proceedings, the primary author must upload camera-ready sources and pay the mandatory author registration fee via our secure merchant portal by Friday.\n\nProgram Executive Committee",
-                warningSigns = "External domain (ieee-tvcg-symposium-2026.org instead of official ieee.org); urgent wire/credit card payment link for publication inclusion.",
+                subjectLine = "Manuscript #1408 Review Complete: Minor Revisions & Camera-Ready Upload",
+                emailBody = "Dear Author,\n\nThe Program Committee has finalized peer review for your submission to the Special Issue on Immersive Cybersecurity & XR Systems. Two reviewers recommended acceptance pending minor formatting revisions.\n\nPlease inspect the attached meta-review PDF and upload your revised LaTeX source package via the author portal by Friday.\n\nProgram Executive Committee",
+                warningSigns = "External domain (ieee-tvcg-symposium-2026.org instead of official ieee.org); double-extension executable attachment ('Reviewer_Meta_Reviews.pdf.exe').",
                 hasGrammaticalAnomalies = false,
                 hasDomainAnomaly = true,
                 attachmentName = "Reviewer_Meta_Reviews.pdf.exe",
                 timePressureSeconds = 240f,
                 correctAction = "Report Phish",
-                correctiveFeedback = "Predatory and spoofed academic conference scams exploit author pride and tight deadlines. Genuine IEEE notifications use official @ieee.org domains and reputable conference systems like HotCRP or EasyChair."
+                correctiveFeedback = "Targeted academic spear-phishing exploits researchers waiting on peer reviews. Both the lookalike domain ('ieee-tvcg-symposium-2026.org') and the '.pdf.exe' attachment reveal the threat."
             });
 
             // ============================================================
-            // S22 - Authority Bias - Legitimate - Medium
+            // S22 - Authority Bias - Legitimate - Hard
             // ============================================================
             masterScenarioPool.Add(new PhishingScenarioData
             {
                 scenarioId = "S22",
                 classification = ThreatClassification.Legitimate,
                 biasType = CognitiveBiasType.AuthorityBias,
-                difficulty = "Medium",
-                context = "Authentic CISO cybersecurity awareness bulletin and quarterly drill report.",
-                displayName = "Chief Information Security Officer",
+                difficulty = "Hard",
+                context = "Authentic CISO mandatory laboratory workstation patching directive.",
+                displayName = "Office of the Chief Information Security Officer",
                 senderAddress = "ciso@university.edu",
                 displayDomain = "university.edu",
-                rawHyperlinkUrl = "https://security.university.edu/bulletins/2026-q4-results",
-                subjectLine = "CISO Cybersecurity Briefing: Q4 Threat Landscape & Phishing Drill Summary",
-                emailBody = "Dear Faculty, Staff, and Students,\n\nEach quarter, our security operations team assesses institutional resilience against social engineering. Last month's simulated phishing exercise demonstrated a 24% reduction in click-through rates across campus.\n\nWe encourage everyone to review the comprehensive briefing report published on our official cybersecurity portal.\n\nNo credentials or authentication details are required to read this report.\n\nOffice of the Chief Information Security Officer\nUniversity System",
-                warningSigns = "None.",
+                rawHyperlinkUrl = "https://security.university.edu/advisories/cve-2026-4109",
+                subjectLine = "SECURITY DIRECTIVE: Mandatory Patching for CVE-2026-4109 on Lab Machines",
+                emailBody = "MEMORANDUM TO ALL LAB ADMINISTRATORS & RESEARCH STUDENTS:\n\nA critical privilege-escalation vulnerability (CVE-2026-4109) affecting Windows and Linux development workstations is being actively exploited.\n\nAll laboratory machines connected to the research VLAN must install the October security rollup by tomorrow at 17:00. Unpatched hosts detected by automated Nessus scans will be temporarily isolated.\n\nReview the remediation instructions on the CISO Advisory Portal.\n\nChief Information Security Officer",
+                warningSigns = "None. Uses strong security language ('CVE-2026-4109', 'temporarily isolated'), yet originates from 'ciso@university.edu' and links to 'security.university.edu'.",
                 hasGrammaticalAnomalies = false,
                 hasDomainAnomaly = false,
-                attachmentName = "",
-                timePressureSeconds = 300f,
+                attachmentName = "CVE_2026_4109_Remediation_Advisory.pdf",
+                timePressureSeconds = 240f,
                 correctAction = "Ignore / Read Without Reporting",
-                correctiveFeedback = "This is a legitimate security bulletin from the institutional CISO. The sender domain matches university.edu, no sensitive information is requested, and the link leads to the authentic public security page."
+                correctiveFeedback = "Real CISO advisories about zero-day vulnerabilities sound urgent and threatening! Verifying the SMTP header telemetry confirms 'ciso@university.edu' and 'security.university.edu' are completely genuine."
             });
 
             // ============================================================
-            // S23 - Familiarity/Trust - Deceptive Phish - Medium
+            // S23 - Familiarity/Trust - Deceptive Phish - Hard
             // ============================================================
             masterScenarioPool.Add(new PhishingScenarioData
             {
                 scenarioId = "S23",
                 classification = ThreatClassification.DeceptivePhish,
                 biasType = CognitiveBiasType.FamiliarityTrust,
-                difficulty = "Medium",
-                context = "Microsoft Teams missed audio voicemail notification with malicious HTML payload.",
-                displayName = "Microsoft Teams Voice Service",
-                senderAddress = "noreply-voicemail@teams-notification-audio.com",
+                difficulty = "Hard",
+                context = "Microsoft Teams meeting recording & transcript share lure.",
+                displayName = "Microsoft Teams Recording Bot",
+                senderAddress = "recordings-noreply@teams-stream-archive.com",
                 displayDomain = "microsoft.com",
-                rawHyperlinkUrl = "https://teams-notification-audio.com/listen?id=vm-9801",
-                subjectLine = "Missed Call: You have a new 42-second voicemail from +1 (555) 019-2841",
-                emailBody = "Microsoft Teams Audio Messaging\n\nYou missed an audio call on your enterprise extension from +1 (555) 019-2841 at 14:22.\n\nA digital transcript and audio recording have been generated. Listen to your voicemail via the secure Teams audio player link or inspect the attached playback HTML envelope.\n\nMicrosoft Unified Communications",
-                warningSigns = "External domain teams-notification-audio.com; attached HTML file designed to harvest credentials via fake login overlay.",
+                rawHyperlinkUrl = "https://stream.teams-stream-archive.com/video/capstone-sync-oct28",
+                subjectLine = "Meeting Recording Ready: 'Capstone Final Demo Sync & Code Review'",
+                emailBody = "Microsoft Teams Stream\n\nThe cloud recording and AI-generated action items from today's meeting ('Capstone Final Demo Sync & Code Review') are now available for playback.\n\nPer organizational retention settings, meeting recordings expire automatically after 14 days. Open the Stream player below or view the attached transcript summary.\n\nMicrosoft Teams Collaboration",
+                warningSigns = "External domain 'teams-stream-archive.com' instead of 'microsoft.com'; attached HTML credential harvester ('Meeting_Transcript_Player.html').",
                 hasGrammaticalAnomalies = false,
                 hasDomainAnomaly = true,
-                attachmentName = "Voicemail_Audio_Playback_42s.html",
+                attachmentName = "Meeting_Transcript_Player.html",
                 timePressureSeconds = 180f,
                 correctAction = "Report Phish",
-                correctiveFeedback = "Voicemail notification lures exploit natural curiosity. Legitimate Teams voicemails are stored and played directly inside the Microsoft Teams desktop/mobile application, never through HTML email attachments."
+                correctiveFeedback = "Fake Teams/Zoom meeting recording notifications are among the hardest real-world phishing emails to spot without checking the sender domain ('teams-stream-archive.com') and '.html' attachment."
             });
 
             // ============================================================
-            // S24 - Social Proof/Reward - Legitimate - Easy
+            // S24 - Social Proof/Reward - Legitimate - Hard
             // ============================================================
             masterScenarioPool.Add(new PhishingScenarioData
             {
                 scenarioId = "S24",
                 classification = ThreatClassification.Legitimate,
                 biasType = CognitiveBiasType.SocialProofReward,
-                difficulty = "Easy",
-                context = "Authentic campus innovation challenge and hackathon awards announcement.",
-                displayName = "University Innovation & Technology Center",
-                senderAddress = "innovation-events@university.edu",
+                difficulty = "Hard",
+                context = "Authentic external sponsor hackathon reimbursement & prize claim.",
+                displayName = "University Innovation & Entrepreneurship Center",
+                senderAddress = "innovation-grants@university.edu",
                 displayDomain = "university.edu",
-                rawHyperlinkUrl = "https://innovation.university.edu/hackathon/2026-winners",
-                subjectLine = "Celebration: Announcing the 2026 Annual AR/VR Hackathon Winners!",
-                emailBody = "Dear Students and Faculty,\n\nWe extend our congratulations to all 48 student teams who competed in this weekend's Annual IVRAR Innovation Challenge! Over 200 participants demonstrated breakthrough spatial computing and immersive training prototypes.\n\nVisit our public showcase gallery to view project demonstrations, awards ceremonies, and photo albums.\n\nUniversity Innovation & Research Center",
-                warningSigns = "None.",
+                rawHyperlinkUrl = "https://innovation.university.edu/hackathon/hardware-reimbursement",
+                subjectLine = "Action Required: Submit Receipts for 2026 XR Hackathon Hardware Grant",
+                emailBody = "Dear Hackathon Finalist,\n\nCongratulations on completing the 2026 Annual AR/VR Innovation Challenge! Over 85% of participating student teams have already uploaded their hardware prototyping receipts for reimbursement (up to $200 per team).\n\nTo include your team's reimbursement in Friday's finance run, please upload your itemized PDF receipts via the official Innovation Center portal.\n\nUniversity Innovation & Research Center",
+                warningSigns = "None. Mentions '$200 reimbursement' and '85% of teams', which resembles social-proof lures, but is hosted on the verified 'innovation.university.edu' domain.",
                 hasGrammaticalAnomalies = false,
                 hasDomainAnomaly = false,
-                attachmentName = "",
-                timePressureSeconds = 300f,
+                attachmentName = "Reimbursement_Claim_Instructions.pdf",
+                timePressureSeconds = 240f,
                 correctAction = "Ignore / Read Without Reporting",
-                correctiveFeedback = "This is a legitimate celebratory announcement from the university innovation center. The sender and link point to the valid university.edu domain and no personal information is requested."
+                correctiveFeedback = "Legitimate university grant programs also have deadlines and mention reimbursement amounts. Cross-checking the telemetry confirms 'innovation-grants@university.edu' and 'innovation.university.edu' are authentic."
             });
 
             // ============================================================
-            // S25 - Urgency/Scarcity - Legitimate - Medium
+            // S25 - Urgency/Scarcity - Legitimate - Hard
             // ============================================================
             masterScenarioPool.Add(new PhishingScenarioData
             {
                 scenarioId = "S25",
                 classification = ThreatClassification.Legitimate,
                 biasType = CognitiveBiasType.UrgencyScarcity,
-                difficulty = "Medium",
-                context = "University Library official automated loan return reminder.",
-                displayName = "University Library Circulation",
+                difficulty = "Hard",
+                context = "University Library interlibrary loan recall & late-fee hold warning.",
+                displayName = "University Library Access Services",
                 senderAddress = "circulation@university.edu",
                 displayDomain = "university.edu",
-                rawHyperlinkUrl = "https://library.university.edu/myaccount/renewals",
-                subjectLine = "Notice: Library Loan Due Date Approaching in 48 Hours",
-                emailBody = "Dear Student,\n\nOur circulation records indicate that one or more items checked out to your student account are due within the next 48 hours.\n\nYou may renew eligible titles directly through the official University Library portal or return them to any campus book drop.\n\nNo passwords or confidential credentials are requested by email.\n\nUniversity Library Circulation Desk",
-                warningSigns = "None.",
+                rawHyperlinkUrl = "https://library.university.edu/myaccount/recalls",
+                subjectLine = "URGENT RECALL: Interlibrary Loan Item Overdue - Transcript Hold Warning",
+                emailBody = "Dear Patron,\n\nAn Interlibrary Loan reference volume checked out to your student ID has been recalled by the lending institution for course reserves and is due within 48 hours.\n\nPer university policy, unreturned recalled items accrue $5.00/day replacement fees and place an administrative hold on official transcript requests.\n\nCheck your recall status or request an extension on the University Library portal.\n\nUniversity Library Circulation Desk",
+                warningSigns = "None. Despite threatening a '$5.00/day fee' and 'transcript hold', the sender ('circulation@university.edu') and host ('library.university.edu') are 100% genuine.",
                 hasGrammaticalAnomalies = false,
                 hasDomainAnomaly = false,
                 attachmentName = "",
-                timePressureSeconds = 300f,
+                timePressureSeconds = 240f,
                 correctAction = "Ignore / Read Without Reporting",
-                correctiveFeedback = "This is a legitimate loan reminder from the university library. The sender and link point to the authentic institutional domain and advise managing renewals via the library portal."
+                correctiveFeedback = "Library recall notices often sound harsh and mention fees or holds. Checking the telemetry confirms 'circulation@university.edu' and 'library.university.edu' are completely legitimate."
             });
 
             // ============================================================
-            // S26 - Urgency/Scarcity - Legitimate - Easy
+            // S26 - Urgency/Scarcity - Legitimate - Hard
             // ============================================================
             masterScenarioPool.Add(new PhishingScenarioData
             {
                 scenarioId = "S26",
                 classification = ThreatClassification.Legitimate,
                 biasType = CognitiveBiasType.UrgencyScarcity,
-                difficulty = "Easy",
-                context = "Campus Health Services annual vaccination clinic scheduling advisory.",
-                displayName = "Campus Student Health Center",
+                difficulty = "Hard",
+                context = "Campus Health Services mandatory immunization compliance hold.",
+                displayName = "Campus Student Health Compliance",
                 senderAddress = "healthcenter@university.edu",
                 displayDomain = "university.edu",
-                rawHyperlinkUrl = "https://health.university.edu/clinics/immunization-schedule",
-                subjectLine = "Advisory: Annual Campus Wellness & Flu Clinic Appointments Available",
-                emailBody = "Dear Campus Community,\n\nStudent Health Services is hosting the annual campus wellness and immunization clinic this week at the Student Center.\n\nAppointments can be booked through the student health portal. Walk-ins are also welcome between 09:00 and 16:00.\n\nNo insurance payments or banking details are collected via email.\n\nStudent Health Services\nDivision of Student Life",
-                warningSigns = "None.",
+                rawHyperlinkUrl = "https://health.university.edu/patient-portal/immunizations",
+                subjectLine = "COMPLIANCE HOLD WARNING: Missing Immunization Record for Spring Enrollment",
+                emailBody = "Dear Student,\n\nA routine audit of state-mandated student health records indicates that your immunization verification form or waiver is incomplete for the upcoming academic term.\n\nStudents with incomplete health compliance records by November 15th will have a registration hold placed on their Spring course enrollment.\n\nPlease review your status on the confidential Student Health Patient Portal.\n\nCampus Student Health Services",
+                warningSigns = "None. Uses a registration hold deadline, but originates from 'healthcenter@university.edu' and points to 'health.university.edu'.",
                 hasGrammaticalAnomalies = false,
                 hasDomainAnomaly = false,
                 attachmentName = "",
-                timePressureSeconds = 300f,
+                timePressureSeconds = 240f,
                 correctAction = "Ignore / Read Without Reporting",
-                correctiveFeedback = "This is an authentic health advisory from the campus wellness center. All appointments are handled via the official university health system."
+                correctiveFeedback = "Universities enforce real registration holds for health records. Because 'healthcenter@university.edu' and 'health.university.edu' pass all header checks, this is a legitimate administrative email."
             });
 
             // ============================================================
@@ -778,154 +778,165 @@ public struct PhishingScenarioData
                 classification = ThreatClassification.Legitimate,
                 biasType = CognitiveBiasType.AuthorityBias,
                 difficulty = "Hard",
-                context = "Official academic circular from the University Office of the Registrar.",
+                context = "Official graduation & degree-candidacy audit deadline from Registrar.",
                 displayName = "Office of the University Registrar",
                 senderAddress = "registrar@university.edu",
                 displayDomain = "university.edu",
-                rawHyperlinkUrl = "https://registrar.university.edu/calendar/academic-deadlines",
-                subjectLine = "Official Academic Notice: Midterm Grade Publishing & Course Audit Deadline",
-                emailBody = "Dear Student,\n\nThe University Registrar announces that midterm grade evaluations have been posted to official student records.\n\nStudents wishing to audit courses or review academic standing must submit elective petitions via the verified student portal before the published deadline.\n\nOfficial transcripts and academic records should only be accessed through the university's authenticated student portal.\n\nOffice of the University Registrar",
-                warningSigns = "None.",
+                rawHyperlinkUrl = "https://registrar.university.edu/graduation/candidacy-form",
+                subjectLine = "FINAL DEADLINE: Confirm Diploma Name & Degree Candidacy Application",
+                emailBody = "Dear Degree Candidate,\n\nFriday at 17:00 is the final administrative deadline to verify the exact legal spelling of your name for diploma printing and commencement program listing.\n\nCandidates who do not confirm their degree candidacy record on the Registrar Portal by the deadline will be deferred to the subsequent conferral cycle.\n\nOffice of the University Registrar",
+                warningSigns = "None. High-stakes deadline from an authority figure, but 'registrar@university.edu' and 'registrar.university.edu' are 100% authentic.",
                 hasGrammaticalAnomalies = false,
                 hasDomainAnomaly = false,
                 attachmentName = "",
-                timePressureSeconds = 300f,
+                timePressureSeconds = 240f,
                 correctAction = "Ignore / Read Without Reporting",
-                correctiveFeedback = "This is a legitimate academic circular from the Office of the Registrar. The domain matches the verified university institution and directs students to official portals."
+                correctiveFeedback = "High-stakes deadlines from the Registrar are common in real life. Inspecting the SMTP headers confirms that 'registrar@university.edu' and 'registrar.university.edu' are authentic."
             });
 
             // ============================================================
-            // S28 - Authority Bias - Legitimate - Medium
+            // S28 - Authority Bias - Legitimate - Hard
             // ============================================================
             masterScenarioPool.Add(new PhishingScenarioData
             {
                 scenarioId = "S28",
                 classification = ThreatClassification.Legitimate,
                 biasType = CognitiveBiasType.AuthorityBias,
-                difficulty = "Medium",
-                context = "Campus Public Safety and Police facility parking advisory.",
+                difficulty = "Hard",
+                context = "Campus Public Safety parking citation appeal / permit verification.",
                 displayName = "Department of Campus Public Safety",
                 senderAddress = "publicsafety@university.edu",
                 displayDomain = "university.edu",
-                rawHyperlinkUrl = "https://publicsafety.university.edu/alerts/parking-protocol",
-                subjectLine = "Campus Safety Advisory: Facility Maintenance & Parking Reallocation",
-                emailBody = "Notice to All Campus Residents,\n\nDue to scheduled facility maintenance and parking structure resurfacing, parking permits in Lot 4 will be temporarily relocated to the North Deck.\n\nReview the updated campus transit routes and shuttle schedules on our public safety website.\n\nCampus police officers will not issue citations in overflow zones during this transition.\n\nDepartment of Campus Public Safety",
-                warningSigns = "None.",
+                rawHyperlinkUrl = "https://publicsafety.university.edu/parking/vehicle-registry",
+                subjectLine = "Notice: Unregistered Vehicle License Plate Warning in Lot 4",
+                emailBody = "Notice from Campus Parking Enforcement,\n\nAutomated license-plate recognition (ALPR) scanners recorded a vehicle associated with your student parking permit parked in Lot 4 without an updated decal mapping.\n\nWhile a courtesy warning was issued today in lieu of a $75.00 citation, please verify your license plate number on the Campus Public Safety portal within 72 hours.\n\nDepartment of Campus Public Safety",
+                warningSigns = "None. Parking citation warnings look like classic phishing bait, but 'publicsafety@university.edu' and 'publicsafety.university.edu' are completely genuine!",
                 hasGrammaticalAnomalies = false,
                 hasDomainAnomaly = false,
                 attachmentName = "",
-                timePressureSeconds = 300f,
+                timePressureSeconds = 240f,
                 correctAction = "Ignore / Read Without Reporting",
-                correctiveFeedback = "This is an authentic public safety notice with verified domains and transparent logistical information."
+                correctiveFeedback = "Parking warnings are a favorite theme for both real campus police and phishers. The only way to tell them apart is checking the telemetry: 'publicsafety@university.edu' is verified and legitimate."
             });
 
             // ============================================================
-            // S29 - Familiarity/Trust - Legitimate - Medium
+            // S29 - Familiarity/Trust - Legitimate - Hard
             // ============================================================
             masterScenarioPool.Add(new PhishingScenarioData
             {
                 scenarioId = "S29",
                 classification = ThreatClassification.Legitimate,
                 biasType = CognitiveBiasType.FamiliarityTrust,
-                difficulty = "Medium",
-                context = "Canvas Learning Management System automated submission receipt.",
+                difficulty = "Hard",
+                context = "Canvas LMS third-party vendor domain ('instructure.com') notification.",
                 displayName = "Canvas Learning Management System",
                 senderAddress = "notifications@instructure.com",
                 displayDomain = "instructure.com",
-                rawHyperlinkUrl = "https://university.instructure.com/courses/10482/submissions",
-                subjectLine = "Submission Receipt: Project Milestone 2 - Cybersecurity VR",
-                emailBody = "Dear Student,\n\nYour digital submission for 'Project Milestone 2' was successfully recorded in Canvas on October 27 at 14:15 UTC.\n\nSubmission details:\nFile: Team_Report_Final.pdf\nSize: 2.4 MB\n\nYou can review your uploaded submission and instructor feedback through your course dashboard.\n\nInstructure Canvas Notification System",
-                warningSigns = "None.",
+                rawHyperlinkUrl = "https://university.instructure.com/courses/10482/assignments/89412",
+                subjectLine = "Plagiarism Scan Alert: Turnitin Similarity Report Generated for Submission",
+                emailBody = "Automated Canvas LMS Notification:\n\nYour recent file upload for 'Project Milestone 2 - Cybersecurity VR' has been processed by the Turnitin Originality service.\n\nStatus: Similarity Index Flagged for Instructor Review.\n\nYou may view the annotated originality report and citation breakdown directly inside your Canvas course submission page.\n\nInstructure Canvas Notification System",
+                warningSigns = "None. Uses Instructure's official domain ('instructure.com' / 'university.instructure.com') with full SPF/DKIM alignment.",
                 hasGrammaticalAnomalies = false,
                 hasDomainAnomaly = false,
                 attachmentName = "",
-                timePressureSeconds = 300f,
+                timePressureSeconds = 240f,
                 correctAction = "Ignore / Read Without Reporting",
-                correctiveFeedback = "This is a legitimate automated LMS submission confirmation. The link uses the university's authentic Canvas tenant subdomain."
+                correctiveFeedback = "Canvas LMS is legitimately hosted by Instructure ('instructure.com' / 'university.instructure.com'). Even though 'Turnitin Similarity Flagged' sounds alarming, the SPF/DKIM alignment confirms it is genuine."
             });
 
             // ============================================================
-            // S30 - Familiarity/Trust - Legitimate - Easy
+            // S30 - Familiarity/Trust - Legitimate - Hard
             // ============================================================
             masterScenarioPool.Add(new PhishingScenarioData
             {
                 scenarioId = "S30",
                 classification = ThreatClassification.Legitimate,
                 biasType = CognitiveBiasType.FamiliarityTrust,
-                difficulty = "Easy",
-                context = "Campus Bookstore digital order fulfillment confirmation.",
+                difficulty = "Hard",
+                context = "Campus Bookstore digital textbook rental auto-charge reminder.",
                 displayName = "University Campus Bookstore",
                 senderAddress = "orders@campusbookstore.university.edu",
                 displayDomain = "university.edu",
-                rawHyperlinkUrl = "https://campusbookstore.university.edu/orders/lookup",
-                subjectLine = "Order Confirmation: Course Materials Ready for Pickup",
-                emailBody = "Dear Customer,\n\nYour course textbook order #BK-88421 is now packaged and ready for pickup at the Campus Bookstore service counter.\n\nPlease bring your physical student ID card when picking up your materials. Pickup hours are Monday through Friday, 08:30 to 17:00.\n\nUniversity Bookstore Operations",
-                warningSigns = "None.",
+                rawHyperlinkUrl = "https://campusbookstore.university.edu/rentals/return-label",
+                subjectLine = "Rental Reminder: Return Course Equipment or Card on File Will Be Billed",
+                emailBody = "Dear Student,\n\nYour semester rental period for 'XR Development Kit & Course Pack (Order #BK-88421)' concludes at the end of finals week.\n\nPer your rental agreement, unreturned items are automatically converted to a purchase ($145.00) on your student bursar account. Print your free return check-in slip or extend your rental on the Campus Bookstore portal.\n\nUniversity Bookstore Operations",
+                warningSigns = "None. Mentions a '$145.00' charge for unreturned rentals, but originates from the verified 'campusbookstore.university.edu' domain.",
                 hasGrammaticalAnomalies = false,
                 hasDomainAnomaly = false,
-                attachmentName = "",
-                timePressureSeconds = 300f,
+                attachmentName = "Rental_CheckIn_Barcode_BK88421.pdf",
+                timePressureSeconds = 240f,
                 correctAction = "Ignore / Read Without Reporting",
-                correctiveFeedback = "This is an authentic bookstore pickup confirmation. The sender and link point to the valid university.edu domain."
+                correctiveFeedback = "Auto-charge reminders for textbook or lab rentals look suspicious at first glance, but 'campusbookstore.university.edu' is an authentic university subdomain."
             });
 
             // ============================================================
-            // S31 - Social Proof/Reward - Legitimate - Medium
+            // S31 - Social Proof/Reward - Legitimate - Hard
             // ============================================================
             masterScenarioPool.Add(new PhishingScenarioData
             {
                 scenarioId = "S31",
                 classification = ThreatClassification.Legitimate,
                 biasType = CognitiveBiasType.SocialProofReward,
-                difficulty = "Medium",
-                context = "Student Government Association annual campus election bulletin.",
-                displayName = "Student Government Association",
-                senderAddress = "elections@sga.university.edu",
+                difficulty = "Hard",
+                context = "Course evaluation survey completion priority grade-view incentive.",
+                displayName = "Office of Institutional Effectiveness",
+                senderAddress = "course-evals@university.edu",
                 displayDomain = "university.edu",
-                rawHyperlinkUrl = "https://sga.university.edu/elections/candidate-platforms",
-                subjectLine = "Campus Voting Open: 2026 Student Government Executive Elections",
-                emailBody = "Dear Fellow Students,\n\nVoting is now open for this year's Student Government Association executive officers. Over 3,200 students cast their ballots on Day 1!\n\nReview certified candidate statements, debate transcripts, and policy platforms on the official SGA portal.\n\nBalloting is open through Thursday at 18:00.\n\nSGA Election Commission",
-                warningSigns = "None.",
+                rawHyperlinkUrl = "https://evals.university.edu/student/dashboard",
+                subjectLine = "78% of Your Class Has Completed Course Evaluations - Unlock Early Grade View",
+                emailBody = "Dear Student,\n\nEnd-of-term faculty and course evaluations are now open. Currently, 78% of students in your enrolled sections have submitted their anonymous feedback.\n\nStudents who complete evaluations for all enrolled courses before Friday at 23:59 unlock early online access to final course grades as soon as instructors submit them.\n\nOffice of Institutional Effectiveness",
+                warningSigns = "None. Uses social proof ('78% of your class') and an incentive ('Early Grade View'), yet is sent from 'course-evals@university.edu' and hosted on 'evals.university.edu'.",
                 hasGrammaticalAnomalies = false,
                 hasDomainAnomaly = false,
                 attachmentName = "",
-                timePressureSeconds = 300f,
+                timePressureSeconds = 240f,
                 correctAction = "Ignore / Read Without Reporting",
-                correctiveFeedback = "This is a legitimate student election announcement. Social participation metrics are factual and no personal credentials are required."
+                correctiveFeedback = "Many universities genuinely offer early grade viewing as an incentive to complete course evaluations. Checking the headers confirms 'evals.university.edu' is an official university server."
             });
 
             // ============================================================
-            // S32 - Social Proof/Reward - Legitimate - Easy
+            // S32 - Social Proof/Reward - Legitimate - Hard
             // ============================================================
             masterScenarioPool.Add(new PhishingScenarioData
             {
                 scenarioId = "S32",
                 classification = ThreatClassification.Legitimate,
                 biasType = CognitiveBiasType.SocialProofReward,
-                difficulty = "Easy",
-                context = "University Career Development Center employer showcase directory.",
-                displayName = "Career Development Center",
+                difficulty = "Hard",
+                context = "University Career Center on-campus interview slot sign-up.",
+                displayName = "University Career Development Center",
                 senderAddress = "careercenter@university.edu",
                 displayDomain = "university.edu",
-                rawHyperlinkUrl = "https://career.university.edu/fairs/fall-stem-directory",
-                subjectLine = "Fall STEM Career Fair: Employer Guide & Workshop Schedule",
-                emailBody = "Dear Students,\n\nThe Career Development Center invites you to attend the Fall STEM Career Showcase next Wednesday in the Grand Ballroom.\n\nMore than 60 engineering, cybersecurity, and software employers will be conducting on-campus interviews and technical workshops.\n\nDownload the official employer directory and prepare your resume via the career portal.\n\nUniversity Career Development Center",
-                warningSigns = "None.",
+                rawHyperlinkUrl = "https://career.university.edu/interviews/schedule-slot",
+                subjectLine = "Urgent: 2 Remaining Interview Slots for Cybersecurity Internships",
+                emailBody = "Dear Engineering Senior,\n\nBased on your resume profile in the university career system, you matched with technical recruiters attending next week's On-Campus Cybersecurity & XR Recruiting Day.\n\nNearly all interview timeslots have been claimed by fellow seniors—only 2 afternoon slots remain open. Reserve your 20-minute interview slot on the Career Portal today.\n\nUniversity Career Development Center",
+                warningSigns = "None. Uses scarcity ('only 2 slots remain') and peer competition, but originates from 'careercenter@university.edu' and links to 'career.university.edu'.",
                 hasGrammaticalAnomalies = false,
                 hasDomainAnomaly = false,
                 attachmentName = "",
-                timePressureSeconds = 300f,
+                timePressureSeconds = 240f,
                 correctAction = "Ignore / Read Without Reporting",
-                correctiveFeedback = "This is an authentic career fair bulletin hosted on the valid university domain."
+                correctiveFeedback = "Real career center emails often have limited interview slots! Because 'careercenter@university.edu' and 'career.university.edu' are authentic, this is a legitimate email."
             });
 
             GenerateBalancedDeck(24);
+        }
+
+        private static System.Random rngInstance;
+        private static System.Random GetFreshRng()
+        {
+            int seed = Environment.TickCount ^ Guid.NewGuid().GetHashCode();
+            UnityEngine.Random.InitState(seed);
+            rngInstance = new System.Random(seed);
+            return rngInstance;
         }
 
         public void GenerateBalancedDeck(int targetCount = 24)
         {
             if (masterScenarioPool == null || masterScenarioPool.Count == 0)
                 InitializeDefaultScenarios();
+
+            GetFreshRng();
 
             List<PhishingScenarioData> phishPool = new List<PhishingScenarioData>();
             List<PhishingScenarioData> legitPool = new List<PhishingScenarioData>();
@@ -942,83 +953,51 @@ public struct PhishingScenarioData
             ShuffleList(legitPool);
 
             scenarioDeck.Clear();
-            int phishIdx = 0;
-            int legitIdx = 0;
-
             int halfCount = targetCount / 2;
-            int pRem = halfCount;
-            int lRem = targetCount - halfCount;
 
-            int consecutivePhish = 0;
-            int consecutiveLegit = 0;
+            for (int i = 0; i < halfCount; i++)
+                scenarioDeck.Add(phishPool[i % phishPool.Count]);
 
-            for (int i = 0; i < targetCount; i++)
+            for (int i = 0; i < targetCount - halfCount; i++)
+                scenarioDeck.Add(legitPool[i % legitPool.Count]);
+
+            // Perform multiple full Fisher-Yates passes on the combined deck for true unpredictable randomization
+            ShuffleList(scenarioDeck);
+            ShuffleList(scenarioDeck);
+
+            // Prevent extreme streaks (>3 in a row of same type) while preserving genuine randomness
+            for (int i = 3; i < scenarioDeck.Count; i++)
             {
-                bool canPickPhish = (pRem > 0) && (consecutivePhish < 2);
-                bool canPickLegit = (lRem > 0) && (consecutiveLegit < 2);
-
-                if (canPickPhish)
+                bool p0 = scenarioDeck[i - 3].classification != ThreatClassification.Legitimate;
+                bool p1 = scenarioDeck[i - 2].classification != ThreatClassification.Legitimate;
+                bool p2 = scenarioDeck[i - 1].classification != ThreatClassification.Legitimate;
+                bool p3 = scenarioDeck[i].classification != ThreatClassification.Legitimate;
+                if (p0 == p1 && p1 == p2 && p2 == p3)
                 {
-                    int nextP = pRem - 1;
-                    int nextL = lRem;
-                    if (nextP > 2 * (nextL + 1) || nextL > 2 * (nextP + 1))
-                        canPickPhish = false;
-                }
-
-                if (canPickLegit)
-                {
-                    int nextL = lRem - 1;
-                    int nextP = pRem;
-                    if (nextL > 2 * (nextP + 1) || nextP > 2 * (nextL + 1))
-                        canPickLegit = false;
-                }
-
-                bool pickPhish;
-                if (canPickPhish && canPickLegit)
-                {
-                    float pWeight = (float)pRem / (pRem + lRem);
-                    pickPhish = UnityEngine.Random.value < pWeight;
-                }
-                else if (canPickPhish)
-                {
-                    pickPhish = true;
-                }
-                else if (canPickLegit)
-                {
-                    pickPhish = false;
-                }
-                else
-                {
-                    // Fallback prioritizing whichever pool still has items remaining
-                    pickPhish = pRem > lRem;
-                }
-
-                if (pickPhish)
-                {
-                    scenarioDeck.Add(phishPool[phishIdx % phishPool.Count]);
-                    phishIdx++;
-                    pRem--;
-                    consecutivePhish++;
-                    consecutiveLegit = 0;
-                }
-                else
-                {
-                    scenarioDeck.Add(legitPool[legitIdx % legitPool.Count]);
-                    legitIdx++;
-                    lRem--;
-                    consecutiveLegit++;
-                    consecutivePhish = 0;
+                    for (int j = i + 1; j < scenarioDeck.Count; j++)
+                    {
+                        bool pj = scenarioDeck[j].classification != ThreatClassification.Legitimate;
+                        if (pj != p3)
+                        {
+                            var tmp = scenarioDeck[i];
+                            scenarioDeck[i] = scenarioDeck[j];
+                            scenarioDeck[j] = tmp;
+                            break;
+                        }
+                    }
                 }
             }
 
-            Debug.Log($"[StratifiedDeckGenerator] Generated balanced deck of {scenarioDeck.Count} cards (50% Phish / 50% Legit, MaxRun <= 2).");
+            Debug.Log($"[StratifiedDeckGenerator] Generated randomized balanced deck of {scenarioDeck.Count} cards (50% Phish / 50% Legit).");
         }
 
         private static void ShuffleList<T>(List<T> list)
         {
+            if (rngInstance == null)
+                GetFreshRng();
             for (int i = list.Count - 1; i > 0; i--)
             {
-                int swapIndex = UnityEngine.Random.Range(0, i + 1);
+                int swapIndex = rngInstance.Next(0, i + 1);
                 T temp = list[i];
                 list[i] = list[swapIndex];
                 list[swapIndex] = temp;
