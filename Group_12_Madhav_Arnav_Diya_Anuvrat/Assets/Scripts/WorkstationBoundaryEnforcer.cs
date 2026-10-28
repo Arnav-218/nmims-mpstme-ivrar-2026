@@ -87,11 +87,30 @@ namespace IVRAR.CybersecurityVR
 
         private Vector3 referenceRigPosition;
         private bool hasInitializedReference = false;
+        private bool isSeatedLocked = false;
+        private Vector3 seatedEyeTarget = new Vector3(0f, 1.18f, 0.22f);
+
+        public bool IsSeatedLocked => isSeatedLocked;
 
         public void SetAnchorPosition(Vector3 pos)
         {
             referenceRigPosition = pos;
             hasInitializedReference = true;
+        }
+
+        public void SetSeatedLocked(bool locked, Vector3 eyeTarget)
+        {
+            isSeatedLocked = locked;
+            seatedEyeTarget = eyeTarget;
+            if (headCamera == null)
+                ResolveReferences();
+
+            if (locked && headCamera != null)
+            {
+                Transform rig = rigRoot != null ? rigRoot : transform;
+                Vector3 headPos = headCamera.position;
+                rig.position += (seatedEyeTarget - headPos);
+            }
         }
 
         private void LateUpdate()
@@ -103,11 +122,18 @@ namespace IVRAR.CybersecurityVR
             }
 
             Transform rig = rigRoot != null ? rigRoot : transform;
+            Vector3 headPos = headCamera.position;
+
+            // When seated in the chair ('K' toggle), lock body translation to the chair while allowing full 360° head/eye rotation!
+            if (isSeatedLocked)
+            {
+                Vector3 lockDelta = seatedEyeTarget - headPos;
+                rig.position += lockDelta;
+                return;
+            }
 
             // Prevent player from clipping out of the room or walking far away in VR/simulator.
             // If the head position leaves the room interior boundaries, clamp the rig back inside.
-            Vector3 headPos = headCamera.position;
-
             float clampedX = Mathf.Clamp(headPos.x, roomMinX, roomMaxX);
             float clampedZ = Mathf.Clamp(headPos.z, roomMinZ, roomMaxZ);
 
@@ -118,9 +144,9 @@ namespace IVRAR.CybersecurityVR
             }
 
             // In VR simulator / seated testing: keep user seated in front of workstation if drastically displaced (> 4.5m)
-            if (Vector3.Distance(new Vector3(headPos.x, 0f, headPos.z), new Vector3(0f, 0f, 0.18f)) > 4.5f)
+            if (Vector3.Distance(new Vector3(headPos.x, 0f, headPos.z), new Vector3(0f, 0f, 0.22f)) > 4.5f)
             {
-                Vector3 recenterCorrection = new Vector3(0f - headPos.x, 0f, 0.18f - headPos.z);
+                Vector3 recenterCorrection = new Vector3(0f - headPos.x, 0f, 0.22f - headPos.z);
                 rig.position += recenterCorrection;
             }
         }

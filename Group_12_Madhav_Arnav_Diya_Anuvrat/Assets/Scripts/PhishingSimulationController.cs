@@ -183,7 +183,7 @@ public sealed class PhishingSimulationController : MonoBehaviour
         for (int i = transform.childCount - 1; i >= 0; i--)
         {
             GameObject child = transform.GetChild(i).gameObject;
-            if (child.name == "Phishing Simulation Pointer" || child.name == "Pointer Reticle")
+            if (child.name == "Phishing Simulation Pointer" || child.name == "Pointer Reticle" || child.name.EndsWith("AudioSource"))
                 continue;
 
             if (Application.isPlaying)
@@ -487,7 +487,7 @@ public sealed class PhishingSimulationController : MonoBehaviour
         emergencyAlarmLever = alarmButton.transform;
         BoxCollider alarmCol = alarmButton.GetComponent<BoxCollider>();
         if (alarmCol != null) alarmCol.isTrigger = false;
-        CreateLabel("Alarm Label", "EMERGENCY\nREPORT", new Vector3(0f, 0.045f * 0.5f + 0.002f, 0f), 20, 0.008f, Color.white, TextAnchor.MiddleCenter, alarmButton.transform, Quaternion.Euler(90f, 0f, 0f));
+        CreateLabel("Alarm Label", "EMERGENCY\nREPORT", new Vector3(0.70f, 0.840f, 0.82f), 20, 0.008f, Color.white, TextAnchor.MiddleCenter, officeContent, Quaternion.Euler(90f, 0f, 0f), true);
 
         // Chair placed so the seat sits under the seated player (eyes at Z=0.18) with the backrest just behind them
         CreateOfficeChair(new Vector3(0f, 0f, 0.30f));
@@ -640,9 +640,14 @@ public sealed class PhishingSimulationController : MonoBehaviour
             centerLedMat.SetColor("_EmissionColor", new Color(0.2f, 0.8f, 1f) * 1.5f);
         }
 
-        // Center Monitor Titlebar
-        CreateBox("Titlebar Bar", new Vector3(0f, 0.415f, -0.028f), new Vector3(1.48f, 0.055f, 0.005f), new Color(0.10f, 0.18f, 0.28f), centerMonObj.transform);
-        headerText = CreateLabel("Titlebar Text", "CYBER-DEFENSE WORKSTATION  //  SECURE MAIL CLIENT v4.2", centerPos + new Vector3(-0.68f, 0.418f, -0.032f), 24, 0.0105f, new Color(0.40f, 0.85f, 1f), TextAnchor.MiddleLeft);
+        // Center Monitor Titlebar & UI Framing Panels
+        CreateBox("Titlebar Bar", new Vector3(0f, 0.415f, -0.028f), new Vector3(1.48f, 0.055f, 0.005f), new Color(0.08f, 0.16f, 0.26f), centerMonObj.transform, false);
+        CreateBox("Titlebar Accent Line", new Vector3(0f, 0.386f, -0.029f), new Vector3(1.48f, 0.004f, 0.005f), new Color(0.20f, 0.78f, 1.0f), centerMonObj.transform, false);
+        CreateBox("Mail Header Card", new Vector3(0f, 0.23f, -0.027f), new Vector3(1.46f, 0.28f, 0.003f), new Color(0.06f, 0.09f, 0.14f), centerMonObj.transform, false);
+        CreateBox("Mail Body Card", new Vector3(0f, -0.07f, -0.027f), new Vector3(1.46f, 0.29f, 0.003f), new Color(0.05f, 0.07f, 0.11f), centerMonObj.transform, false);
+        CreateBox("Mail Link Card", new Vector3(0f, -0.26f, -0.027f), new Vector3(1.46f, 0.065f, 0.003f), new Color(0.07f, 0.12f, 0.20f), centerMonObj.transform, false);
+        CreateBox("Mail Footer Bar", new Vector3(0f, -0.37f, -0.027f), new Vector3(1.46f, 0.12f, 0.003f), new Color(0.06f, 0.10f, 0.15f), centerMonObj.transform, false);
+        headerText = CreateLabel("Titlebar Text", "CYBER-DEFENSE WORKSTATION  //  SECURE MAIL CLIENT v4.2  [PRESS 'K' TO SIT/STAND]", centerPos + new Vector3(-0.70f, 0.418f, -0.032f), 22, 0.0098f, new Color(0.40f, 0.88f, 1f), TextAnchor.MiddleLeft);
 
         // Center Monitor 5 Eye-Gaze AOIs
         senderText = CreateAoiLabel("AOI_SenderHeader", "", new Vector3(TextLeftX, 1.68f, TextZ), 26, 0.0115f, Color.white, AOIType.SenderHeader, "sender_header", 20);
@@ -679,9 +684,11 @@ public sealed class PhishingSimulationController : MonoBehaviour
             leftLedMat.SetColor("_EmissionColor", new Color(0.2f, 0.95f, 0.6f) * 1.5f);
         }
 
-        CreateBox("Left Monitor Titlebar", new Vector3(0f, 0.365f, -0.028f), new Vector3(0.68f, 0.05f, 0.005f), new Color(0.12f, 0.22f, 0.20f), leftMonObj.transform);
+        CreateBox("Left Monitor Titlebar", new Vector3(0f, 0.365f, -0.028f), new Vector3(0.68f, 0.05f, 0.005f), new Color(0.08f, 0.22f, 0.18f), leftMonObj.transform, false);
+        CreateBox("Left Titlebar Accent", new Vector3(0f, 0.338f, -0.029f), new Vector3(0.68f, 0.004f, 0.005f), new Color(0.20f, 0.95f, 0.70f), leftMonObj.transform, false);
+        CreateBox("Left Telemetry Card", new Vector3(0f, -0.02f, -0.027f), new Vector3(0.66f, 0.68f, 0.003f), new Color(0.05f, 0.08f, 0.12f), leftMonObj.transform, false);
         CreateLabel("Left Title Text", "OPERATIONAL TELEMETRY & SCORE", new Vector3(-0.32f, 0.368f, -0.032f), 22, 0.0095f, new Color(0.25f, 0.95f, 0.75f), TextAnchor.MiddleLeft, leftMonObj.transform);
-        telemetryHudText = CreateLabel("Telemetry HUD Text", "INITIALIZING...", new Vector3(-0.32f, 0.30f, -0.032f), 22, 0.010f, new Color(0.88f, 0.94f, 0.98f), TextAnchor.UpperLeft, leftMonObj.transform);
+        telemetryHudText = CreateLabel("Telemetry HUD Text", "INITIALIZING...", new Vector3(-0.31f, 0.30f, -0.032f), 21, 0.0096f, new Color(0.88f, 0.94f, 0.98f), TextAnchor.UpperLeft, leftMonObj.transform);
 
         // 3. RIGHT FORENSICS & URGENCY MONITOR (Repositioned to X=+1.12m to eliminate bezel overlap/intersection)
         GameObject rightMonObj = new GameObject("Right Forensics Monitor");
@@ -710,16 +717,18 @@ public sealed class PhishingSimulationController : MonoBehaviour
             rightLedMat.SetColor("_EmissionColor", new Color(1f, 0.4f, 0.3f) * 1.5f);
         }
 
-        CreateBox("Right Monitor Titlebar", new Vector3(0f, 0.365f, -0.028f), new Vector3(0.68f, 0.05f, 0.005f), new Color(0.24f, 0.14f, 0.14f), rightMonObj.transform);
+        CreateBox("Right Monitor Titlebar", new Vector3(0f, 0.365f, -0.028f), new Vector3(0.68f, 0.05f, 0.005f), new Color(0.24f, 0.12f, 0.12f), rightMonObj.transform, false);
+        CreateBox("Right Titlebar Accent", new Vector3(0f, 0.338f, -0.029f), new Vector3(0.68f, 0.004f, 0.005f), new Color(1.0f, 0.40f, 0.30f), rightMonObj.transform, false);
+        CreateBox("Right Forensics Card", new Vector3(0f, -0.08f, -0.027f), new Vector3(0.66f, 0.54f, 0.003f), new Color(0.06f, 0.07f, 0.10f), rightMonObj.transform, false);
         CreateLabel("Right Title Text", "URGENCY TIMER & FORENSICS", new Vector3(-0.32f, 0.368f, -0.032f), 22, 0.0095f, new Color(1f, 0.45f, 0.35f), TextAnchor.MiddleLeft, rightMonObj.transform);
 
-        // Timer background & progress bar
-        CreateBox("Timer BG", new Vector3(0f, 0.29f, -0.028f), new Vector3(0.64f, 0.032f, 0.004f), new Color(0.12f, 0.14f, 0.16f), rightMonObj.transform);
-        GameObject timerBarObj = CreateBox("Timer Bar", new Vector3(-0.31f, 0.29f, -0.031f), new Vector3(0.62f, 0.026f, 0.004f), new Color(0.1f, 0.85f, 0.95f), rightMonObj.transform);
+        // Timer background & progress bar (strictly contained inside Timer BG at X=0, width=0.62m)
+        CreateBox("Timer BG", new Vector3(0f, 0.29f, -0.028f), new Vector3(0.64f, 0.034f, 0.004f), new Color(0.10f, 0.12f, 0.15f), rightMonObj.transform, false);
+        GameObject timerBarObj = CreateBox("Timer Bar", new Vector3(0f, 0.29f, -0.031f), new Vector3(0.62f, 0.024f, 0.004f), new Color(0.1f, 0.85f, 0.95f), rightMonObj.transform, false);
         timerProgressBar = timerBarObj.transform;
 
-        timerHudText = CreateLabel("Timer Text", "TIME PRESSURE: 05:00", new Vector3(-0.32f, 0.245f, -0.032f), 21, 0.0095f, new Color(0.3f, 0.85f, 1f), TextAnchor.MiddleLeft, rightMonObj.transform);
-        forensicsHudText = CreateLabel("Forensics Text", "ANALYSIS STANDBY...", new Vector3(-0.32f, 0.19f, -0.032f), 20, 0.0095f, new Color(0.85f, 0.90f, 0.94f), TextAnchor.UpperLeft, rightMonObj.transform);
+        timerHudText = CreateLabel("Timer Text", "TIME PRESSURE: 05:00", new Vector3(-0.31f, 0.245f, -0.032f), 21, 0.0095f, new Color(0.3f, 0.85f, 1f), TextAnchor.MiddleLeft, rightMonObj.transform);
+        forensicsHudText = CreateLabel("Forensics Text", "ANALYSIS STANDBY...", new Vector3(-0.31f, 0.19f, -0.032f), 20, 0.0092f, new Color(0.88f, 0.92f, 0.96f), TextAnchor.UpperLeft, rightMonObj.transform);
     }
 
     // =========================================================================
@@ -727,16 +736,19 @@ public sealed class PhishingSimulationController : MonoBehaviour
     // =========================================================================
     private void BuildInteractiveConsole()
     {
-        // Dedicated unscaled root container for console ergonomics (Z=0.86m, Y=0.79m, angled 22°)
+        // Dedicated unscaled root container for console ergonomics (Z=0.86m, Y=0.795m, angled -22° so the face tilts TOWARDS the seated player!)
         // Critical: Must remain localScale = Vector3.one so child button geometry is never distorted or flattened!
         GameObject consoleRoot = new GameObject("Tactile Console");
         consoleRoot.transform.SetParent(officeContent, false);
-        consoleRoot.transform.localPosition = new Vector3(0f, 0.785f, 0.86f);
-        consoleRoot.transform.localRotation = Quaternion.Euler(22f, 0f, 0f);
+        consoleRoot.transform.localPosition = new Vector3(0f, 0.795f, 0.86f);
+        consoleRoot.transform.localRotation = Quaternion.Euler(-22f, 0f, 0f);
         consoleRoot.transform.localScale = Vector3.one;
 
         // Unified Sleek Housing Base (fits comfortably on desk between keyboard and screens, width=0.96m, depth=0.28m, height=0.024m)
         CreateBox("Console Base Housing", Vector3.zero, new Vector3(0.96f, 0.024f, 0.28f), new Color(0.12f, 0.13f, 0.16f), consoleRoot.transform);
+
+        // Opaque back shield at the rear of the console so buttons cannot be seen from behind the PC desk
+        CreateBox("Console Rear Shield", new Vector3(0f, 0.035f, 0.138f), new Vector3(0.96f, 0.09f, 0.012f), new Color(0.10f, 0.11f, 0.14f), consoleRoot.transform);
 
         // 1. Primary Decision Tier (Row 1, closest to player at Z=-0.055m, elevated keycaps)
         CreateBezeledButton("Click Link", PhishingSimulationAction.ClickLink, new Vector3(-0.31f, 0.025f, -0.055f), new Vector3(0.27f, 0.045f, 0.085f), new Color(0.14f, 0.50f, 0.95f), consoleRoot.transform);
@@ -759,11 +771,11 @@ public sealed class PhishingSimulationController : MonoBehaviour
         PhishingActionButton actionButton = button.AddComponent<PhishingActionButton>();
         actionButton.Initialize(action, color);
 
-        // 3. Button Label (Rotated 90° on X, positioned cleanly on top surface of plunger; cullBack=false to ensure visibility from above)
+        // 3. Button Label (Rotated 90° on X, positioned cleanly on top surface of plunger; cullBack=true + ZTest LEqual so it is invisible from behind the PC!)
         // Parented to the UNSCALED console root (not the scaled keycap) so the text is never squashed flat.
         // Dark backing plate under the text keeps every label readable on any key colour.
         CreateBox(label + " Label Plate", localPosition + new Vector3(0f, scale.y * 0.5f + 0.001f, 0f), new Vector3(scale.x * 0.92f, 0.002f, scale.z * 0.62f), new Color(0.05f, 0.06f, 0.08f), parent, false);
-        CreateLabel(label + " Label", label.ToUpperInvariant(), localPosition + new Vector3(0f, scale.y * 0.5f + 0.004f, 0f), 48, 0.0055f, Color.white, TextAnchor.MiddleCenter, parent, Quaternion.Euler(90f, 0f, 0f), false);
+        CreateLabel(label + " Label", label.ToUpperInvariant(), localPosition + new Vector3(0f, scale.y * 0.5f + 0.004f, 0f), 48, 0.0055f, Color.white, TextAnchor.MiddleCenter, parent, Quaternion.Euler(90f, 0f, 0f), true);
     }
 
     // =========================================================================
@@ -796,7 +808,7 @@ public sealed class PhishingSimulationController : MonoBehaviour
 
     private void HandleKeyboardShortcuts()
     {
-        bool k1 = false, k2 = false, k3 = false, kCont = false, kShuf = false, kRest = false, kRec = false;
+        bool k1 = false, k2 = false, k3 = false, kCont = false, kShuf = false, kRest = false, kRec = false, kSit = false;
 #if ENABLE_INPUT_SYSTEM
         if (Keyboard.current != null)
         {
@@ -807,6 +819,7 @@ public sealed class PhishingSimulationController : MonoBehaviour
             kShuf = Keyboard.current.sKey.wasPressedThisFrame;
             kRest = Keyboard.current.backspaceKey.wasPressedThisFrame;
             kRec = Keyboard.current.rKey.wasPressedThisFrame || Keyboard.current.cKey.wasPressedThisFrame;
+            kSit = Keyboard.current.kKey.wasPressedThisFrame;
         }
 #elif ENABLE_LEGACY_INPUT_MANAGER
         k1 = Input.GetKeyDown(KeyCode.Alpha1) || Input.GetKeyDown(KeyCode.Keypad1);
@@ -816,8 +829,13 @@ public sealed class PhishingSimulationController : MonoBehaviour
         kShuf = Input.GetKeyDown(KeyCode.S);
         kRest = Input.GetKeyDown(KeyCode.Backspace);
         kRec = Input.GetKeyDown(KeyCode.R) || Input.GetKeyDown(KeyCode.C);
+        kSit = Input.GetKeyDown(KeyCode.K);
 #endif
-        if (k1)
+        if (kSit)
+        {
+            ToggleSitInChair();
+        }
+        else if (k1)
             Activate(PhishingSimulationAction.ClickLink);
         else if (k2)
             Activate(PhishingSimulationAction.ReportPhishing);
@@ -831,6 +849,44 @@ public sealed class PhishingSimulationController : MonoBehaviour
             Activate(PhishingSimulationAction.Restart);
         else if (kRec || OVRInput.GetDown(OVRInput.Button.Two, OVRInput.Controller.RTouch) || OVRInput.GetDown(OVRInput.Button.Two, OVRInput.Controller.LTouch))
             RecenterIfDisplaced(true);
+    }
+
+    public void ToggleSitInChair()
+    {
+        if (headAnchor == null)
+            ResolveTrackingReferences();
+
+        var enforcer = GetComponent<WorkstationBoundaryEnforcer>();
+        if (enforcer == null)
+        {
+            enforcer = gameObject.AddComponent<WorkstationBoundaryEnforcer>();
+            enforcer.Configure(headAnchor, headAnchor != null ? headAnchor.parent : null, transform.parent);
+        }
+
+        bool nextSeated = !enforcer.IsSeatedLocked;
+        Vector3 seatedEyeTarget = new Vector3(0f, 1.18f, 0.22f);
+        enforcer.SetSeatedLocked(nextSeated, seatedEyeTarget);
+
+        // Align rig forward facing directly towards the center monitor when sitting down
+        if (nextSeated && headAnchor != null)
+        {
+            Transform rigRoot = headAnchor.parent != null && headAnchor.parent.parent != null
+                ? headAnchor.parent.parent
+                : (headAnchor.parent != null ? headAnchor.parent : headAnchor);
+            Vector3 headEuler = headAnchor.eulerAngles;
+            rigRoot.rotation = Quaternion.Euler(0f, -headEuler.y, 0f);
+            enforcer.SetSeatedLocked(true, seatedEyeTarget);
+        }
+
+        if (PhishingAudioManager.Instance != null)
+            PhishingAudioManager.Instance.PlayButtonClick();
+
+        if (headerText != null)
+        {
+            headerText.text = nextSeated
+                ? "CYBER-DEFENSE WORKSTATION  //  [SEATED IN CHAIR - PRESS 'K' TO STAND]"
+                : "CYBER-DEFENSE WORKSTATION  //  SECURE MAIL CLIENT v4.2  [PRESS 'K' TO SIT]";
+        }
     }
 
     private void UpdateUrgencyTimerDisplay()
@@ -851,7 +907,10 @@ public sealed class PhishingSimulationController : MonoBehaviour
             float ratio = Mathf.Clamp01(remaining / total);
             if (timerProgressBar != null)
             {
-                timerProgressBar.localScale = new Vector3(0.62f * ratio, 0.026f, 0.004f);
+                float fullWidth = 0.62f;
+                float currentWidth = Mathf.Max(0.001f, fullWidth * ratio);
+                timerProgressBar.localScale = new Vector3(currentWidth, 0.024f, 0.004f);
+                timerProgressBar.localPosition = new Vector3(-fullWidth * 0.5f + currentWidth * 0.5f, 0.29f, -0.031f);
                 Color barColor = ratio > 0.4f ? Color.Lerp(new Color(1f, 0.7f, 0.1f), new Color(0.1f, 0.85f, 0.95f), (ratio - 0.4f) / 0.6f) : Color.Lerp(new Color(0.95f, 0.15f, 0.15f), new Color(1f, 0.7f, 0.1f), ratio / 0.4f);
                 SetRendererColor(timerProgressBar.GetComponent<Renderer>(), barColor);
             }
@@ -1354,23 +1413,19 @@ public sealed class PhishingSimulationController : MonoBehaviour
         text.color = color;
         text.richText = false;
 
-        // Requirement 3: Canvas/Mesh Backface Culling
-        // Apply 3D text shader with hardware backface culling (Cull Back) only when requested (e.g. monitors)
-        // Buttons and flat horizontal elements keep Cull Off so they are reliably visible from all view angles.
-        if (cullBack)
+        // Requirement 3: Depth-tested & Backface-culled 3D Text
+        // ALWAYS apply GUI/3D Text Shader Cull Back so ZTest LEqual prevents text from bleeding through solid monitors/walls!
+        Shader cullShader = Shader.Find("GUI/3D Text Shader Cull Back");
+        MeshRenderer rend = label.GetComponent<MeshRenderer>();
+        if (cullShader != null && rend != null && text.font != null && text.font.material != null)
         {
-            Shader cullShader = Shader.Find("GUI/3D Text Shader Cull Back");
-            MeshRenderer rend = label.GetComponent<MeshRenderer>();
-            if (cullShader != null && rend != null && text.font != null && text.font.material != null)
-            {
-                Material textMat = new Material(cullShader);
-                textMat.mainTexture = text.font.material.mainTexture;
-                textMat.color = color;
-                if (Application.isPlaying)
-                    rend.material = textMat;
-                else
-                    rend.sharedMaterial = textMat;
-            }
+            Material textMat = new Material(cullShader);
+            textMat.mainTexture = text.font.material.mainTexture;
+            textMat.color = color;
+            if (Application.isPlaying)
+                rend.material = textMat;
+            else
+                rend.sharedMaterial = textMat;
         }
 
         return text;

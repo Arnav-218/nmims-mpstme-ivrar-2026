@@ -18,6 +18,7 @@ Shader "GUI/3D Text Shader Cull Back"
 
         Lighting Off
         Cull Back
+        ZTest LEqual
         ZWrite Off
         Blend SrcAlpha OneMinusSrcAlpha
 

@@ -45,8 +45,25 @@ namespace IVRAR.CybersecurityVR
             StartAmbientHum();
         }
 
+        private void Start()
+        {
+            InitializeAudioSystem();
+        }
+
+        private void Update()
+        {
+            if (ambientSource == null || !ambientSource.isPlaying)
+            {
+                ConfigureAudioSources();
+                StartAmbientHum();
+            }
+        }
+
         private void LoadAudioClips()
         {
+            AudioListener.volume = 1.0f;
+            AudioListener.pause = false;
+
             if (buttonClickClip == null)
                 buttonClickClip = Resources.Load<AudioClip>("Audio/button_click");
             if (threatAlarmClip == null)
@@ -55,6 +72,16 @@ namespace IVRAR.CybersecurityVR
                 safeChimeClip = Resources.Load<AudioClip>("Audio/safe_chime");
             if (ambientHumClip == null)
                 ambientHumClip = Resources.Load<AudioClip>("Audio/ambient_office_hum");
+
+            // Ensure audio data is loaded into memory even if preloadAudioData was false in .meta
+            if (buttonClickClip != null && buttonClickClip.loadState != AudioDataLoadState.Loaded)
+                buttonClickClip.LoadAudioData();
+            if (threatAlarmClip != null && threatAlarmClip.loadState != AudioDataLoadState.Loaded)
+                threatAlarmClip.LoadAudioData();
+            if (safeChimeClip != null && safeChimeClip.loadState != AudioDataLoadState.Loaded)
+                safeChimeClip.LoadAudioData();
+            if (ambientHumClip != null && ambientHumClip.loadState != AudioDataLoadState.Loaded)
+                ambientHumClip.LoadAudioData();
 
             // Programmatic procedural synthesis fallback if resource files are missing
             if (buttonClickClip == null)
@@ -108,7 +135,9 @@ namespace IVRAR.CybersecurityVR
             source.playOnAwake = false;
             source.loop = loop;
             source.volume = volume;
-            source.spatialBlend = 0.35f; // Well-balanced spatial blend ensuring loud, clear audibility at the player's head in VR
+            source.spatialBlend = 0.0f; // 2D non-spatialized output guarantees crystal-clear, full-volume playback in Meta XR Simulator and PC speakers
+            source.spatialize = false;
+            source.ignoreListenerPause = true;
             source.minDistance = 1.0f;
             source.maxDistance = 20.0f;
             source.rolloffMode = AudioRolloffMode.Logarithmic;
@@ -116,19 +145,20 @@ namespace IVRAR.CybersecurityVR
         }
 
         public void PlayButtonClick(Vector3? worldPosition = null)
-
         {
+            ConfigureAudioSources();
             if (sfxSource != null && buttonClickClip != null)
             {
                 if (worldPosition.HasValue)
                     sfxSource.transform.position = worldPosition.Value;
                 sfxSource.pitch = UnityEngine.Random.Range(0.96f, 1.04f);
-                sfxSource.PlayOneShot(buttonClickClip, 0.9f);
+                sfxSource.PlayOneShot(buttonClickClip, 1.0f);
             }
         }
 
         public void PlayThreatAlarm(Vector3? worldPosition = null)
         {
+            ConfigureAudioSources();
             if (alarmSource != null && threatAlarmClip != null)
             {
                 if (worldPosition.HasValue)
@@ -140,12 +170,13 @@ namespace IVRAR.CybersecurityVR
 
         public void PlaySafeChime(Vector3? worldPosition = null)
         {
+            ConfigureAudioSources();
             if (chimeSource != null && safeChimeClip != null)
             {
                 if (worldPosition.HasValue)
                     chimeSource.transform.position = worldPosition.Value;
                 chimeSource.pitch = 1.0f;
-                chimeSource.PlayOneShot(safeChimeClip, 0.85f);
+                chimeSource.PlayOneShot(safeChimeClip, 1.0f);
             }
         }
 
