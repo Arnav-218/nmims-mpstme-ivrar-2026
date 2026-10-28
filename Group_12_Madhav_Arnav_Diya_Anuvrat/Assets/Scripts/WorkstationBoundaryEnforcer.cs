@@ -15,16 +15,18 @@ namespace IVRAR.CybersecurityVR
         [SerializeField] private Transform rigRoot;
 
         [Header("Workstation Seated Volume Constraints (Meters)")]
-        [SerializeField] private float minX = -0.65f;
-        [SerializeField] private float maxX = 0.65f;
-        [SerializeField] private float minZ = -0.85f;
-        [SerializeField] private float maxZ = 0.45f;
-        [SerializeField] private float minY = 0.90f;
-        [SerializeField] private float maxY = 1.75f;
+        [SerializeField] private float minX = -1.8f;
+        [SerializeField] private float maxX = 1.8f;
+        [SerializeField] private float minZ = -0.5f;
+        [SerializeField] private float maxZ = 2.4f;
+        [SerializeField] private float minY = 0.5f;
+        [SerializeField] private float maxY = 2.2f;
 
-        [Header("Physical Collision Detection")]
-        [SerializeField] private float headColliderRadius = 0.15f;
-        private SphereCollider headCollider;
+        [Header("Stay In Room Boundaries (Office Cabin Room Size 7.2m x 6.4m)")]
+        [SerializeField] private float roomMinX = -3.2f;
+        [SerializeField] private float roomMaxX = 3.2f;
+        [SerializeField] private float roomMinZ = -1.0f;
+        [SerializeField] private float roomMaxZ = 4.6f;
 
         private void Start()
         {
@@ -94,8 +96,33 @@ namespace IVRAR.CybersecurityVR
 
         private void LateUpdate()
         {
-            // Boundary hard-clamping has been safely neutralized so the VR player's natural head motion
-            // is unconstrained and never snaps, resets, or penetrates geometry into the grey background clear color.
+            if (headCamera == null)
+            {
+                ResolveReferences();
+                if (headCamera == null) return;
+            }
+
+            Transform rig = rigRoot != null ? rigRoot : transform;
+
+            // Prevent player from clipping out of the room or walking far away in VR/simulator.
+            // If the head position leaves the room interior boundaries, clamp the rig back inside.
+            Vector3 headPos = headCamera.position;
+
+            float clampedX = Mathf.Clamp(headPos.x, roomMinX, roomMaxX);
+            float clampedZ = Mathf.Clamp(headPos.z, roomMinZ, roomMaxZ);
+
+            if (!Mathf.Approximately(clampedX, headPos.x) || !Mathf.Approximately(clampedZ, headPos.z))
+            {
+                Vector3 correction = new Vector3(clampedX - headPos.x, 0f, clampedZ - headPos.z);
+                rig.position += correction;
+            }
+
+            // In VR simulator / seated testing: keep user seated in front of workstation if drastically displaced (> 4.5m)
+            if (Vector3.Distance(new Vector3(headPos.x, 0f, headPos.z), new Vector3(0f, 0f, 0.18f)) > 4.5f)
+            {
+                Vector3 recenterCorrection = new Vector3(0f - headPos.x, 0f, 0.18f - headPos.z);
+                rig.position += recenterCorrection;
+            }
         }
     }
 }
