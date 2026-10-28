@@ -486,6 +486,46 @@ public sealed class PhishingSimulationController : MonoBehaviour
         BoxCollider alarmCol = alarmButton.GetComponent<BoxCollider>();
         if (alarmCol != null) alarmCol.isTrigger = false;
         CreateLabel("Alarm Label", "EMERGENCY\nREPORT", new Vector3(0f, 0.045f * 0.5f + 0.002f, 0f), 20, 0.008f, Color.white, TextAnchor.MiddleCenter, alarmButton.transform, Quaternion.Euler(90f, 0f, 0f));
+
+        // Ergonomic High-Back Executive Mesh Office Chair centered in front of the workstation
+        CreateOfficeChair(new Vector3(0f, 0f, 0.18f));
+    }
+
+    private void CreateOfficeChair(Vector3 pos)
+    {
+        Transform chairRoot = new GameObject("Executive Office Chair").transform;
+        chairRoot.SetParent(officeContent, false);
+        chairRoot.localPosition = pos;
+
+        Color darkMesh = new Color(0.12f, 0.13f, 0.15f);
+        Color chrome = new Color(0.75f, 0.77f, 0.80f);
+        Color cushionDark = new Color(0.16f, 0.17f, 0.20f);
+
+        // 1. 5-Star Caster Wheel Base (on floor) - non-colliding visual prop
+        CreateBox("Chair Base Hub", new Vector3(0f, 0.08f, 0f), new Vector3(0.12f, 0.06f, 0.12f), chrome, chairRoot, false);
+        CreateBox("Chair Gas Lift Cylinder", new Vector3(0f, 0.26f, 0f), new Vector3(0.065f, 0.30f, 0.065f), chrome, chairRoot, false);
+        
+        // Caster Legs (Cross base)
+        CreateBox("Chair Leg X", new Vector3(0f, 0.06f, 0f), new Vector3(0.56f, 0.035f, 0.08f), chrome, chairRoot, false);
+        CreateBox("Chair Leg Z", new Vector3(0f, 0.06f, 0f), new Vector3(0.08f, 0.035f, 0.56f), chrome, chairRoot, false);
+
+        // 2. Contoured Seat Cushion (at standard ergonomic seat height 0.46m)
+        CreateBox("Chair Seat Cushion", new Vector3(0f, 0.46f, 0f), new Vector3(0.52f, 0.08f, 0.50f), cushionDark, chairRoot, false);
+
+        // 3. Ergonomic High-Back Mesh Rest (angled back slightly at Z = -0.22m, Y = 0.85m)
+        GameObject backrest = CreateBox("Chair High Backrest", new Vector3(0f, 0.84f, -0.22f), new Vector3(0.48f, 0.70f, 0.05f), darkMesh, chairRoot, false);
+        backrest.transform.localRotation = Quaternion.Euler(-6f, 0f, 0f);
+
+        // Lumbar Support & Adjustable Headrest
+        CreateBox("Chair Lumbar Pad", new Vector3(0f, 0.65f, -0.20f), new Vector3(0.40f, 0.12f, 0.04f), cushionDark, chairRoot, false);
+        CreateBox("Chair Headrest", new Vector3(0f, 1.22f, -0.26f), new Vector3(0.28f, 0.14f, 0.06f), cushionDark, chairRoot, false);
+
+        // 4. Ergonomic Armrests (Left & Right)
+        CreateBox("Armrest Left Post", new Vector3(-0.27f, 0.56f, 0f), new Vector3(0.035f, 0.18f, 0.05f), chrome, chairRoot, false);
+        CreateBox("Armrest Left Pad", new Vector3(-0.27f, 0.66f, 0.04f), new Vector3(0.08f, 0.035f, 0.26f), cushionDark, chairRoot, false);
+
+        CreateBox("Armrest Right Post", new Vector3(0.27f, 0.56f, 0f), new Vector3(0.035f, 0.18f, 0.05f), chrome, chairRoot, false);
+        CreateBox("Armrest Right Pad", new Vector3(0.27f, 0.66f, 0.04f), new Vector3(0.08f, 0.035f, 0.26f), cushionDark, chairRoot, false);
     }
 
     private void CreateCoffeeMug(Vector3 pos)
