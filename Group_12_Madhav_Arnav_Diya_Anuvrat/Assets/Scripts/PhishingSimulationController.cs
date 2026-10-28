@@ -806,6 +806,7 @@ public sealed class PhishingSimulationController : MonoBehaviour
             kRec = Keyboard.current.rKey.wasPressedThisFrame || Keyboard.current.cKey.wasPressedThisFrame;
             kSit = Keyboard.current.kKey.wasPressedThisFrame;
         }
+#endif
 #if ENABLE_LEGACY_INPUT_MANAGER
         k1 = k1 || Input.GetKeyDown(KeyCode.Alpha1) || Input.GetKeyDown(KeyCode.Keypad1);
         k2 = k2 || Input.GetKeyDown(KeyCode.Alpha2) || Input.GetKeyDown(KeyCode.Keypad2);
