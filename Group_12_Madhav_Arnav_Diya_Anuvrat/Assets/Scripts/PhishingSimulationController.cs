@@ -164,8 +164,9 @@ public sealed class PhishingSimulationController : MonoBehaviour
 
         if (force || Mathf.Abs(headPos.x) > 0.5f || headPos.z < -0.3f || headPos.z > 0.6f || headPos.y < 0.6f)
         {
-            float targetY = 1.25f;
-            float dy = (headAnchor.localPosition.y < 0.3f) ? (targetY - rigRoot.position.y) : 0f;
+            // Seated eye height: put the player's eyes where a seated person's would be over the chair seat.
+            float targetY = 1.18f;
+            float dy = force ? (targetY - headPos.y) : ((headAnchor.localPosition.y < 0.3f) ? (targetY - rigRoot.position.y) : 0f);
             Vector3 delta = new Vector3(0f - headPos.x, dy, 0.18f - headPos.z);
             rigRoot.position += delta;
             var enforcer = GetComponent<WorkstationBoundaryEnforcer>();
@@ -253,8 +254,9 @@ public sealed class PhishingSimulationController : MonoBehaviour
         CreateDeskSucculent("Desk Succulent Plant", new Vector3(0.88f, 0.83f, 1.25f));
 
         // Office Props: Framed Security Awareness Posters on Back Wall
-        CreateFramedPoster("Security Poster 1", new Vector3(-1.4f, 2.25f, 4.85f), "ZERO TRUST PROTOCOL\nVerify explicitly. Limit blast radius.", new Color(0.12f, 0.35f, 0.65f));
-        CreateFramedPoster("Security Poster 2", new Vector3(1.4f, 2.25f, 4.85f), "BE AWARE OF PHISHING\nInspect links, senders & urgency cues.", new Color(0.70f, 0.22f, 0.15f));
+        // Poster 1 moved right & up so it sits diagonally above-right of the bookshelf (shelf spans X -2.9..-1.5, top Y 2.25)
+        CreateFramedPoster("Security Poster 1", new Vector3(-0.55f, 2.45f, 4.85f), "ZERO TRUST PROTOCOL\nVerify explicitly. Limit blast radius.", new Color(0.12f, 0.35f, 0.65f));
+        CreateFramedPoster("Security Poster 2", new Vector3(1.05f, 2.05f, 4.85f), "BE AWARE OF PHISHING\nInspect links, senders & urgency cues.", new Color(0.70f, 0.22f, 0.15f));
 
         // Ceiling recessed LED panel lights with downward Spotlights
         CreateCeilingLightPanel("Ceiling LED 1", new Vector3(-1.6f, 3.32f, 0.8f));
@@ -487,8 +489,51 @@ public sealed class PhishingSimulationController : MonoBehaviour
         if (alarmCol != null) alarmCol.isTrigger = false;
         CreateLabel("Alarm Label", "EMERGENCY\nREPORT", new Vector3(0f, 0.045f * 0.5f + 0.002f, 0f), 20, 0.008f, Color.white, TextAnchor.MiddleCenter, alarmButton.transform, Quaternion.Euler(90f, 0f, 0f));
 
-        // Ergonomic High-Back Executive Mesh Office Chair centered in front of the workstation
-        CreateOfficeChair(new Vector3(0f, 0f, 0.18f));
+        // Chair placed so the seat sits under the seated player (eyes at Z=0.18) with the backrest just behind them
+        CreateOfficeChair(new Vector3(0f, 0f, 0.30f));
+        BuildOfficePolish();
+    }
+
+    // Extra production-polish dressing: rug, window with skyline, wall clock, side cabinet, cable-free floor accents.
+    private void BuildOfficePolish()
+    {
+        // Area rug under the workstation
+        CreateBox("Workstation Rug", new Vector3(0f, 0.005f, 0.75f), new Vector3(3.0f, 0.01f, 2.4f), new Color(0.20f, 0.27f, 0.36f), officeContent, false);
+        CreateBox("Workstation Rug Border", new Vector3(0f, 0.004f, 0.75f), new Vector3(3.15f, 0.008f, 2.55f), new Color(0.78f, 0.74f, 0.66f), officeContent, false);
+
+        // Window on right wall with city skyline backdrop
+        Transform win = new GameObject("Office Window").transform;
+        win.SetParent(officeContent, false);
+        win.localPosition = new Vector3(3.47f, 1.75f, 0.6f);
+        win.localRotation = Quaternion.Euler(0f, -90f, 0f);
+        CreateBox("Window Frame", Vector3.zero, new Vector3(1.8f, 1.2f, 0.06f), new Color(0.85f, 0.86f, 0.88f), win, false);
+        GameObject sky = CreateBox("Window Sky", new Vector3(0f, 0f, -0.035f), new Vector3(1.68f, 1.08f, 0.01f), new Color(0.55f, 0.75f, 0.95f), win, false);
+        Material skyMat = Application.isPlaying ? sky.GetComponent<Renderer>().material : sky.GetComponent<Renderer>().sharedMaterial;
+        if (skyMat != null && skyMat.HasProperty("_EmissionColor")) { skyMat.EnableKeyword("_EMISSION"); skyMat.SetColor("_EmissionColor", new Color(0.45f, 0.62f, 0.85f)); }
+        float[] heights = { 0.35f, 0.55f, 0.28f, 0.7f, 0.45f, 0.6f, 0.32f };
+        for (int i = 0; i < heights.Length; i++)
+            CreateBox("Skyline " + i, new Vector3(-0.72f + i * 0.24f, -0.54f + heights[i] * 0.5f, -0.04f), new Vector3(0.2f, heights[i], 0.005f), new Color(0.22f, 0.28f, 0.38f), win, false);
+        CreateBox("Window Mullion V", new Vector3(0f, 0f, -0.045f), new Vector3(0.04f, 1.08f, 0.02f), new Color(0.85f, 0.86f, 0.88f), win, false);
+        CreateBox("Window Mullion H", new Vector3(0f, 0f, -0.045f), new Vector3(1.68f, 0.04f, 0.02f), new Color(0.85f, 0.86f, 0.88f), win, false);
+        CreateBox("Window Sill", new Vector3(0f, -0.63f, -0.08f), new Vector3(1.9f, 0.04f, 0.16f), new Color(0.9f, 0.9f, 0.92f), win, false);
+
+        // Wall clock above whiteboard area (left wall)
+        Transform clock = new GameObject("Wall Clock").transform;
+        clock.SetParent(officeContent, false);
+        clock.localPosition = new Vector3(-3.47f, 2.75f, 1.2f);
+        clock.localRotation = Quaternion.Euler(0f, 90f, 0f);
+        CreateBox("Clock Rim", Vector3.zero, new Vector3(0.36f, 0.36f, 0.04f), new Color(0.12f, 0.12f, 0.14f), clock, false);
+        CreateBox("Clock Face", new Vector3(0f, 0f, -0.022f), new Vector3(0.32f, 0.32f, 0.005f), new Color(0.97f, 0.97f, 0.96f), clock, false);
+        GameObject hourHand = CreateBox("Clock Hour Hand", new Vector3(0.03f, 0.03f, -0.027f), new Vector3(0.012f, 0.09f, 0.003f), Color.black, clock, false);
+        hourHand.transform.localRotation = Quaternion.Euler(0f, 0f, -45f);
+        CreateBox("Clock Minute Hand", new Vector3(0f, 0.055f, -0.028f), new Vector3(0.008f, 0.12f, 0.003f), Color.black, clock, false);
+
+        // Low side credenza on right wall with printer & files
+        CreateBox("Credenza Body", new Vector3(2.9f, 0.38f, 3.5f), new Vector3(0.5f, 0.76f, 1.1f), new Color(0.30f, 0.20f, 0.14f), officeContent);
+        CreateBox("Credenza Top", new Vector3(2.9f, 0.775f, 3.5f), new Vector3(0.54f, 0.03f, 1.14f), new Color(0.20f, 0.21f, 0.23f), officeContent);
+        CreateBox("Printer", new Vector3(2.9f, 0.88f, 3.7f), new Vector3(0.42f, 0.18f, 0.38f), new Color(0.88f, 0.89f, 0.90f), officeContent, false);
+        CreateBox("Printer Tray", new Vector3(2.9f, 0.90f, 3.7f - 0.22f), new Vector3(0.3f, 0.01f, 0.1f), new Color(0.3f, 0.3f, 0.32f), officeContent, false);
+        CreateBox("File Box", new Vector3(2.9f, 0.86f, 3.25f), new Vector3(0.3f, 0.14f, 0.36f), new Color(0.18f, 0.35f, 0.6f), officeContent, false);
     }
 
     private void CreateOfficeChair(Vector3 pos)
@@ -715,7 +760,10 @@ public sealed class PhishingSimulationController : MonoBehaviour
         actionButton.Initialize(action, color);
 
         // 3. Button Label (Rotated 90° on X, positioned cleanly on top surface of plunger; cullBack=false to ensure visibility from above)
-        CreateLabel(label + " Label", label, new Vector3(0f, scale.y * 0.5f + 0.002f, 0f), 24, 0.0110f, Color.white, TextAnchor.MiddleCenter, button.transform, Quaternion.Euler(90f, 0f, 0f), false);
+        // Parented to the UNSCALED console root (not the scaled keycap) so the text is never squashed flat.
+        // Dark backing plate under the text keeps every label readable on any key colour.
+        CreateBox(label + " Label Plate", localPosition + new Vector3(0f, scale.y * 0.5f + 0.001f, 0f), new Vector3(scale.x * 0.92f, 0.002f, scale.z * 0.62f), new Color(0.05f, 0.06f, 0.08f), parent, false);
+        CreateLabel(label + " Label", label.ToUpperInvariant(), localPosition + new Vector3(0f, scale.y * 0.5f + 0.004f, 0f), 48, 0.0055f, Color.white, TextAnchor.MiddleCenter, parent, Quaternion.Euler(90f, 0f, 0f), false);
     }
 
     // =========================================================================
